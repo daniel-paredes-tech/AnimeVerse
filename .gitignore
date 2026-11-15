@@ -1,0 +1,16 @@
+# Local configuration and secrets (never commit)
+.env
+
+# Python generated files
+__pycache__/
+*.pyc
+
+# Local virtual environment
+.venv/
+
+# Test runner cache
+.pytest_cache/
+
+# Editor and OS files
+*.swp
+.DS_Store
