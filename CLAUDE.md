@@ -260,7 +260,10 @@ Python: 3.14 (installed with Homebrew; the macOS system Python 3.9 is too old). 
 .venv/bin/python -m pytest                            # all tests (the database must be running)
 .venv/bin/python -m pytest tests/test_repository.py   # one file
 .venv/bin/python -m pytest tests/test_repository.py::test_link_twice_creates_one_link   # one test
+.venv/bin/python -m pytest -m live                    # opt-in tests that call the real AniList API
 ```
+
+- Tests marked `live` are skipped by default (`addopts = -m "not live"` in `pytest.ini`). All other API client tests use `httpx.MockTransport` and a fake clock, so they need no network and never really sleep.
 
 - Database tests never use the main database. `tests/conftest.py` creates `<POSTGRES_DB>_test` in the same container, rebuilds it from `db/schema.sql` at the start of every run, and rolls back each test's changes.
 - Repository functions never commit; the caller controls transactions.
