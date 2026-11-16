@@ -167,6 +167,26 @@ def test_database_failure_rolls_back_only_that_franchise(committing_conn, monkey
     assert count(committing_conn, "anime_franchises") == 2
 
 
+def test_anime_refused_by_the_database_does_not_stop_the_franchise(committing_conn, monkeypatch):
+    real_upsert = repository.upsert_anime
+
+    def upsert_with_one_bad_value(conn, anime):
+        if anime.anilist_id == 900001:
+            # Slips past the parser on purpose: the CHECK constraint refuses a negative count.
+            anime = Anime(anilist_id=anime.anilist_id, title=anime.title, episodes=-1)
+        return real_upsert(conn, anime)
+
+    monkeypatch.setattr(repository, "upsert_anime", upsert_with_one_bad_value)
+    report = import_franchise(FakeClient({"Naruto": naruto_results()}), committing_conn, NARUTO)
+
+    assert not report.failed
+    assert [u.anilist_id for u in report.unsaved] == [900001]
+    assert (report.new, report.refreshed, report.new_links) == (1, 0, 1)
+    stored = [row[0] for row in committing_conn.execute("SELECT anilist_id FROM anime")]
+    assert stored == [900002]  # the other anime was still imported
+    assert "Not saved" in format_report([report]) and "(900001)" in format_report([report])
+
+
 # --- Report ------------------------------------------------------------------------
 
 

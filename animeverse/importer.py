@@ -9,8 +9,12 @@ For each franchise:
 Failure handling:
 - AniList fails for a franchise (after the client's retries): nothing is
   written for it, it is reported as failed, and the next franchise runs.
-- A database error during a franchise: ROLLBACK, so that franchise is left
-  exactly as it was; reported as failed; the next franchise runs.
+- PostgreSQL refuses one anime (a value it cannot store, a broken constraint):
+  only that anime is undone, using a savepoint; it is reported as not saved
+  and the rest of the franchise is still imported.
+- Any other database error during a franchise (e.g. the connection drops):
+  ROLLBACK, so that franchise is left exactly as it was; reported as failed;
+  the next franchise runs.
 - Any other exception is a bug in our code and is NOT caught: it stops the
   import loudly (the open transaction is rolled back when the connection closes).
 
@@ -41,6 +45,13 @@ class ExcludedAnime:
     title: str
 
 
+@dataclass(frozen=True)
+class UnsavedAnime:
+    anilist_id: int
+    title: str
+    reason: str  # PostgreSQL's error message
+
+
 @dataclass
 class FranchiseReport:
     name: str
@@ -49,6 +60,7 @@ class FranchiseReport:
     fetched: int = 0
     rejected: list[Rejection] = field(default_factory=list)
     excluded: list[ExcludedAnime] = field(default_factory=list)
+    unsaved: list[UnsavedAnime] = field(default_factory=list)
     new: int = 0
     refreshed: int = 0
     new_links: int = 0
@@ -102,18 +114,26 @@ def import_franchise(client: AniListClient, conn: psycopg.Connection, config: Fr
         franchise_id = repository.upsert_franchise(conn, Franchise(config.name, config.search))
         new = new_links = 0
         for anime in members:
-            saved = repository.upsert_anime(conn, anime)
-            if saved.created:
-                new += 1
-            if repository.link_anime_to_franchise(conn, saved.id, franchise_id):
-                new_links += 1
+            try:
+                # A savepoint: if PostgreSQL refuses this anime, only this anime
+                # is undone and the transaction stays usable for the others.
+                with conn.transaction():
+                    saved = repository.upsert_anime(conn, anime)
+                    is_new_link = repository.link_anime_to_franchise(conn, saved.id, franchise_id)
+            except (psycopg.DataError, psycopg.IntegrityError) as exc:
+                reason = str(exc).splitlines()[0]
+                report.unsaved.append(UnsavedAnime(anime.anilist_id, anime.title, reason))
+                logger.warning("%s: could not save %r (%d): %s", config.name, anime.title, anime.anilist_id, reason)
+                continue
+            new += saved.created
+            new_links += is_new_link
         conn.commit()
     except psycopg.Error as exc:
         conn.rollback()
         return _fail(report, f"database: {exc}")
 
     report.new = new
-    report.refreshed = len(members) - new
+    report.refreshed = len(members) - len(report.unsaved) - new
     report.new_links = new_links
     return report
 
@@ -132,8 +152,9 @@ def import_all(
             logger.error("%s failed: %s", config.name, report.error)
         else:
             logger.info(
-                "%s: %d new, %d refreshed, %d excluded, %d rejected",
+                "%s: %d new, %d refreshed, %d excluded, %d rejected, %d not saved",
                 config.name, report.new, report.refreshed, len(report.excluded), len(report.rejected),
+                len(report.unsaved),
             )
         reports.append(report)
     return reports
@@ -161,9 +182,11 @@ def format_report(reports: list[FranchiseReport]) -> str:
 
     excluded = [f"{r.name}: {e.title} ({e.anilist_id})" for r in reports for e in r.excluded]
     rejected = [f"{r.name}: position {x.position} (id={x.anilist_id}): {x.reason}" for r in reports for x in r.rejected]
+    unsaved = [f"{r.name}: {u.title} ({u.anilist_id}): {u.reason}" for r in reports for u in r.unsaved]
     failures = [f"{r.name}: {r.error}" for r in reports if r.failed]
     for title, items in (("Excluded (not part of the franchise)", excluded),
                          ("Rejected (malformed data)", rejected),
+                         ("Not saved (refused by the database)", unsaved),
                          ("Failures", failures)):
         if items:
             lines += ["", f"{title}:"] + [f"  - {item}" for item in items]
