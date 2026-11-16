@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      # Values come from .env. The ":?" makes Docker stop with an error
+      # if a value is missing, instead of starting with an empty one.
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+    ports:
+      # Bound to 127.0.0.1 so only this computer can connect, not the local network.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Named volume: the data survives stopping and removing the container.
+      # PostgreSQL 18 images keep their data under /var/lib/postgresql.
+      - pgdata:/var/lib/postgresql
+      # Scripts in this folder run only when the data volume is empty (first start).
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      # pg_isready reports whether PostgreSQL accepts connections.
+      # "$$" passes a literal "$" so the variables are read inside the container.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
