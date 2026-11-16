@@ -12,7 +12,7 @@ The goal is to build a local anime information platform using public APIs, Pytho
 
 The application will initially collect anime-related information from the AniList API and store it in a PostgreSQL database.
 
-The project covers anime from several universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others. A website frontend is out of scope (the developer's decision on 2026-11-16): the project ends at the data pipeline and the FastAPI backend.
+The project covers anime from several universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others. A website frontend is out of scope (the developer's decision on 2026-11-16). A FastAPI backend is postponed: not needed for now (also decided on 2026-11-16), so the current goal is the data pipeline. Don't start backend work unless the developer asks for it.
 
 This is primarily a learning project. Code quality, understanding and good engineering practices are more important than development speed.
 
@@ -37,7 +37,7 @@ Use the following technologies:
 - Programming language: Python.
 - External API: AniList GraphQL API. (Jikan was the original choice; it was abandoned on 2026-11-16 because its API was down for everyone.)
 - HTTP client: HTTPX.
-- Backend framework: FastAPI.
+- Backend framework: FastAPI (postponed, not needed for now).
 - Database: PostgreSQL.
 - Database execution: Docker Compose.
 - Database access: SQL and a dedicated repository layer.
@@ -267,4 +267,13 @@ Python: 3.14 (installed with Homebrew; the macOS system Python 3.9 is too old). 
 
 - Database tests never use the main database. `tests/conftest.py` creates `<POSTGRES_DB>_test` in the same container, rebuilds it from `db/schema.sql` at the start of every run, and rolls back each test's changes.
 - Repository functions never commit; the caller controls transactions.
-- There are no import or web app commands yet. Add them here when they exist.
+
+Import (the database must be running):
+
+```bash
+.venv/bin/python -m animeverse.import_anime   # import every franchise in animeverse/franchises.py
+```
+
+- Exit codes: 0 = all franchises imported, 1 = at least one franchise failed, 2 = could not start (missing settings or database unreachable).
+- Each franchise is one transaction (all or nothing). A failure in one franchise never stops the others. Imports insert and refresh, never delete.
+- An anime is kept only if its romaji or English title contains one of the franchise's `match` terms (see `animeverse/franchises.py`). Excluded anime are listed by name in the report.
