@@ -11,7 +11,12 @@ import psycopg
 import pytest
 
 from animeverse.models import Anime, Franchise
-from animeverse.repository import link_anime_to_franchise, upsert_anime, upsert_franchise
+from animeverse.repository import (
+    link_anime_to_franchise,
+    list_anime_by_franchise,
+    upsert_anime,
+    upsert_franchise,
+)
 
 FULL_ANIME = Anime(
     anilist_id=900001,
@@ -148,6 +153,32 @@ def test_repeated_import_does_not_create_duplicates(conn, count_rows):
 
     assert counts_after_first == (1, 3, 3)
     assert counts_after_second == counts_after_first
+
+
+# --- Reading for display ----------------------------------------------------
+
+
+def test_list_anime_by_franchise_groups_and_sorts(conn):
+    zeta = upsert_franchise(conn, Franchise("Zeta", "z"))
+    alpha = upsert_franchise(conn, Franchise("Alpha", "a"))
+    upsert_franchise(conn, Franchise("Empty", "e"))  # no anime linked
+    less_popular = upsert_anime(conn, Anime(anilist_id=900030, title="Less popular", popularity=10))
+    more_popular = upsert_anime(conn, Anime(anilist_id=900031, title="More popular", popularity=500))
+    no_popularity = upsert_anime(conn, Anime(anilist_id=900032, title="Unknown popularity"))
+    for anime_id in (less_popular, more_popular, no_popularity):
+        link_anime_to_franchise(conn, anime_id, alpha)
+    link_anime_to_franchise(conn, less_popular, zeta)
+
+    result = list_anime_by_franchise(conn)
+
+    assert list(result) == ["Alpha", "Empty", "Zeta"]  # alphabetical, empty one included
+    assert [a.title for a in result["Alpha"]] == ["More popular", "Less popular", "Unknown popularity"]
+    assert result["Empty"] == []
+    assert result["Zeta"] == [Anime(anilist_id=900030, title="Less popular", popularity=10)]
+
+
+def test_list_anime_by_franchise_on_empty_database(conn):
+    assert list_anime_by_franchise(conn) == {}
 
 
 # --- The database refuses invalid data --------------------------------------

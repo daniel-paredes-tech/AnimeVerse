@@ -92,6 +92,34 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
     return row[0]
 
 
+def list_anime_by_franchise(conn: psycopg.Connection) -> dict[str, list[Anime]]:
+    """Every franchise with its anime, for read-only display.
+
+    Franchises are in alphabetical order; each franchise's anime are sorted by
+    popularity (most popular first). Franchises without anime are included
+    with an empty list.
+    """
+    rows = conn.execute(
+        """
+        SELECT f.name,
+               a.anilist_id, a.title, a.mal_id, a.title_english, a.title_japanese,
+               a.type, a.episodes, a.status, a.aired_from, a.aired_to, a.score,
+               a.popularity, a.synopsis, a.image_url, a.anilist_url
+        FROM franchises f
+        LEFT JOIN anime_franchises af ON af.franchise_id = f.id
+        LEFT JOIN anime a ON a.id = af.anime_id
+        ORDER BY f.name, a.popularity DESC NULLS LAST, a.title
+        """
+    ).fetchall()
+
+    result: dict[str, list[Anime]] = {}
+    for franchise_name, *anime_columns in rows:
+        anime_list = result.setdefault(franchise_name, [])
+        if anime_columns[0] is not None:  # NULL anilist_id = franchise without anime
+            anime_list.append(Anime(*anime_columns))
+    return result
+
+
 def count_anime(conn: psycopg.Connection) -> int:
     """Number of rows in the anime table (used to tell new anime from refreshed ones)."""
     return conn.execute("SELECT count(*) FROM anime").fetchone()[0]
