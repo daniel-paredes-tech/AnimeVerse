@@ -12,7 +12,7 @@ The goal is to build a local anime information platform using public APIs, Pytho
 
 The application will initially collect anime-related information from the AniList API and store it in a PostgreSQL database.
 
-The project covers anime from several universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others. A website frontend is out of scope (the developer's decision on 2026-11-16). A FastAPI backend is postponed: not needed for now (also decided on 2026-11-16), so the current goal is the data pipeline. Don't start backend work unless the developer asks for it.
+The project covers anime from several universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others. A website frontend is out of scope (the developer's decision on 2026-11-16). A FastAPI backend is postponed: not needed for now (also decided on 2026-11-16), so the current goal is the data pipeline. Don't start backend work unless the developer asks for it. To view the data there is a private, read-only local page (`animeverse/server.py`, standard library `http.server`, bound to 127.0.0.1) and `queries/demo.sql`, mirroring the developer's flights-to-cuba project. The page is not a public website: keep it read-only, local only, without JavaScript or external resources.
 
 This is primarily a learning project. Code quality, understanding and good engineering practices are more important than development speed.
 
@@ -277,3 +277,12 @@ Import (the database must be running):
 - Exit codes: 0 = all franchises imported, 1 = at least one franchise failed, 2 = could not start (missing settings or database unreachable).
 - Each franchise is one transaction (all or nothing). A failure in one franchise never stops the others. Imports insert and refresh, never delete.
 - An anime is kept only if its romaji or English title contains one of the franchise's `match` terms (see `animeverse/franchises.py`). Excluded anime are listed by name in the report.
+
+Viewing the data (the database must be running):
+
+```bash
+.venv/bin/python -m animeverse.server --open     # read-only local page at http://localhost:8000 (--port to change)
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < queries/demo.sql   # demo queries
+```
+
+- The page refuses requests whose Host header isn't localhost, sends strict security headers and only accepts GET. Server tests start a real server on port 0 with a short `poll_interval` so shutdown is fast.

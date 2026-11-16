@@ -20,8 +20,9 @@ A real run imports 163 anime in about 12 seconds. Running it again creates nothi
 Everything runs on your own computer:
 
 - **PostgreSQL** runs in a local Docker container, and its port is bound to `127.0.0.1`, so it can't be reached from other devices on your network.
+- **The local page** (`animeverse.server`) listens on `127.0.0.1` only, refuses requests for any other host name, and loads nothing from outside (no images, fonts or scripts).
 - **Tests** need no internet connection (except the optional `live` test, which you must ask for explicitly).
-- **The application is not deployed or hosted anywhere.** There is no server, website or remote service; the source code is on GitHub.
+- **The application is not deployed or hosted anywhere.** There is no public website or remote service; the source code is on GitHub.
 
 The only outside connection is the **import** itself: it sends one search request per franchise to the AniList API to download the anime data. No account, key or personal information is sent.
 
@@ -44,6 +45,8 @@ Each layer has one responsibility and lives in its own module in `animeverse/`:
 | `franchises.py` | The list of franchises to import: name, search text and title match terms. |
 | `config.py` | Reads settings from `.env`; the password never appears in logs or error messages. |
 | `import_anime.py` | The command that runs the import. |
+| `server.py` | A private, read-only local page (Python's standard `http.server`) with the stored data. |
+| `page.py` | Turns the stored data into that page's HTML, escaping every value. |
 
 ## Data model
 
@@ -123,13 +126,35 @@ Result: 7 of 7 franchises imported.
 
 Exit codes: `0` all franchises imported, `1` at least one franchise failed, `2` the import could not start (missing settings or database unreachable).
 
-To look at the data:
+To add a franchise, add one line to `animeverse/franchises.py`.
+
+## Viewing the data
+
+There are three ways to look at what's stored (the database must be running).
+
+**1. Local page in your browser**
+
+```bash
+.venv/bin/python -m animeverse.server --open     # http://localhost:8000
+```
+
+Shows every franchise and its anime (title, type, episodes, status, score, year), most popular first. It is read-only: it never calls AniList and never changes the database. Stop it with `Ctrl+C`. If port 8000 is busy, use `--port 8001`.
+
+**2. Demo queries in the terminal**
+
+```bash
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < queries/demo.sql
+```
+
+Runs the queries in [`queries/demo.sql`](queries/demo.sql): rows per table, anime per franchise, a proof that no anime is stored twice, top anime by score and popularity, and missing values per column.
+
+**3. Your own SQL**
 
 ```bash
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
-To add a franchise, add one line to `animeverse/franchises.py`.
+Opens a PostgreSQL shell without typing the password. Type `\dt` to list the tables and `\q` to quit.
 
 ## Tests
 
@@ -139,7 +164,7 @@ To add a franchise, add one line to `animeverse/franchises.py`.
 .venv/bin/python -m pytest -m live            # opt-in: one test against the real AniList API
 ```
 
-- **97 tests**, covering the API client (successful responses, timeouts, retries, rate limits, error responses), the parser (validation, missing and malformed fields, real AniList samples), the repository (upserts, duplicate prevention, constraints) and the import service (repeated imports, failures in one franchise, rollback).
+- **131 tests**, covering the API client (successful responses, timeouts, retries, rate limits, error responses), the parser (validation, missing and malformed fields, real AniList samples), the repository (upserts, duplicate prevention, constraints, reading for display), the import service (repeated imports, failures in one franchise, rollback) and the local page (HTML escaping, security headers, refusing other hosts and methods).
 - API client tests use `httpx.MockTransport` and a fake clock: no network, and no real waiting.
 - Database tests use a separate `<POSTGRES_DB>_test` database, rebuilt from `db/schema.sql` on every run, so your imported data is never touched.
 - The `live` test is skipped by default, so normal runs never depend on AniList being online.
