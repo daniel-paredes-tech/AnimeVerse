@@ -1,0 +1,8 @@
+# Packages needed to run AnimeVerse.
+# Install with: python -m pip install -r requirements.txt
+
+# PostgreSQL driver. The [binary] extra bundles the PostgreSQL client library.
+psycopg[binary]==3.3.9
+
+# Loads settings from the .env file into environment variables.
+python-dotenv==1.2.4
