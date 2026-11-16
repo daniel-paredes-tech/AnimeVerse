@@ -10,7 +10,7 @@ AnimeVerse is an educational software development project created as part of the
 
 The goal is to build a local anime information platform using public APIs, Python and PostgreSQL.
 
-The application will initially collect anime-related information from the Jikan API and store it in a PostgreSQL database.
+The application will initially collect anime-related information from the AniList API and store it in a PostgreSQL database.
 
 The long-term vision is to create a website where users can explore anime, search for characters, browse information and discover different anime universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others.
 
@@ -35,7 +35,7 @@ Everything must run locally.
 Use the following technologies:
 
 - Programming language: Python.
-- External API: Jikan API.
+- External API: AniList GraphQL API. (Jikan was the original choice; it was abandoned on 2026-11-16 because its API was down for everyone.)
 - HTTP client: HTTPX.
 - Backend framework: FastAPI.
 - Database: PostgreSQL.
@@ -112,9 +112,18 @@ Running the import multiple times must not create duplicate records.
 
 ## 5. API Documentation and Data Validation
 
-The selected API is Jikan:
+The selected API is AniList (GraphQL, no API key needed for public data):
 
-https://docs.api.jikan.moe/
+- Endpoint: `POST https://graphql.anilist.co`, with a JSON body containing `query` and `variables`.
+- Documentation: https://docs.anilist.co (source: https://github.com/AniList/docs). GraphQL introspection can be used to verify field types and enum values.
+
+Verified AniList rules (2026-11-16):
+
+- Rate limit: normally 90 requests per minute, but the docs say the API is in a "degraded state" limited to 30 per minute. Read the `X-RateLimit-Limit` and `X-RateLimit-Remaining` headers rather than hard-coding a number. Exceeding the limit returns `429` with `Retry-After` (seconds) and `X-RateLimit-Reset`, plus a 1-minute timeout. A separate burst limiter also exists.
+- Pagination: `Page(page, perPage) { pageInfo { hasNextPage } }`. Rely only on `hasNextPage`: the docs say `total` and `lastPage` are currently inaccurate.
+- Terms of use: free for non-commercial use. Mass data collection ("hoarding") is prohibited (the docs say they are lenient with educational projects). An app may not be named just "AniList".
+- `averageScore` is deprecated; use `weightedScore` (0–100).
+- Search is loose: e.g. "demon slayer" also returned an unrelated anime, so imports need a rule for which results belong to a franchise.
 
 Before writing the API client:
 
@@ -146,7 +155,7 @@ Before implementing the schema:
 4. Explain the primary and unique keys.
 5. Wait for the developer's approval.
 
-Use the external API identifier as a reference for identifying imported records whenever appropriate.
+Use the external API identifier as a reference for identifying imported records whenever appropriate. For anime this is AniList's `id`, stored as `anime.anilist_id` (the upsert key). `anime.mal_id` is optional reference data and deliberately not unique.
 
 Use PostgreSQL constraints and ON CONFLICT operations where appropriate.
 
