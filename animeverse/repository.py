@@ -11,11 +11,17 @@ Rules followed by every function in this module:
 """
 
 from dataclasses import asdict
+from typing import NamedTuple
 
 import psycopg
 
 from animeverse.config import DatabaseSettings
 from animeverse.models import Anime, Franchise
+
+
+class SavedAnime(NamedTuple):
+    id: int  # the anime's internal id
+    created: bool  # True if the row was inserted, False if an existing row was refreshed
 
 
 def connect(settings: DatabaseSettings) -> psycopg.Connection:
@@ -47,14 +53,16 @@ def upsert_franchise(conn: psycopg.Connection, franchise: Franchise) -> int:
     return row[0]
 
 
-def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
+def upsert_anime(conn: psycopg.Connection, anime: Anime) -> SavedAnime:
     """Insert an anime, or update every field if its anilist_id already exists.
 
     Running this twice with the same anilist_id never creates a second row.
     created_at keeps its original value; updated_at is set to the current
     transaction time on every update.
 
-    Returns the anime's internal id either way.
+    Returns the anime's internal id and whether the row is new. PostgreSQL
+    tells us which case happened: xmax is 0 on a freshly inserted row and
+    non-zero on a row that ON CONFLICT ... DO UPDATE just changed.
     """
     row = conn.execute(
         """
@@ -85,11 +93,11 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
             image_url      = EXCLUDED.image_url,
             anilist_url    = EXCLUDED.anilist_url,
             updated_at     = now()
-        RETURNING id
+        RETURNING id, (xmax = 0) AS created
         """,
         asdict(anime),
     ).fetchone()
-    return row[0]
+    return SavedAnime(id=row[0], created=row[1])
 
 
 def list_anime_by_franchise(conn: psycopg.Connection) -> dict[str, list[Anime]]:
@@ -118,11 +126,6 @@ def list_anime_by_franchise(conn: psycopg.Connection) -> dict[str, list[Anime]]:
         if anime_columns[0] is not None:  # NULL anilist_id = franchise without anime
             anime_list.append(Anime(*anime_columns))
     return result
-
-
-def count_anime(conn: psycopg.Connection) -> int:
-    """Number of rows in the anime table (used to tell new anime from refreshed ones)."""
-    return conn.execute("SELECT count(*) FROM anime").fetchone()[0]
 
 
 def link_anime_to_franchise(conn: psycopg.Connection, anime_id: int, franchise_id: int) -> bool:

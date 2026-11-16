@@ -61,7 +61,7 @@ def test_upsert_franchise_twice_keeps_one_row_and_updates_query(conn, count_rows
 
 
 def test_upsert_anime_stores_every_field(conn):
-    anime_id = upsert_anime(conn, FULL_ANIME)
+    anime_id = upsert_anime(conn, FULL_ANIME).id
 
     row = conn.execute(
         """
@@ -77,7 +77,7 @@ def test_upsert_anime_stores_every_field(conn):
 
 
 def test_upsert_anime_with_only_required_fields_stores_nulls(conn):
-    anime_id = upsert_anime(conn, Anime(anilist_id=900002, title="Minimal Anime"))
+    anime_id = upsert_anime(conn, Anime(anilist_id=900002, title="Minimal Anime")).id
 
     row = conn.execute(
         "SELECT mal_id, episodes, score, aired_from FROM anime WHERE id = %s", (anime_id,)
@@ -93,12 +93,17 @@ def test_two_anime_may_share_a_mal_id(conn, count_rows):
     assert count_rows("anime") == 2
 
 
+def test_upsert_anime_reports_whether_the_row_is_new(conn):
+    assert upsert_anime(conn, FULL_ANIME).created is True
+    assert upsert_anime(conn, FULL_ANIME).created is False
+
+
 def test_upsert_anime_twice_keeps_one_row_and_updates_values(conn, count_rows):
-    first_id = upsert_anime(conn, FULL_ANIME)
+    first_id = upsert_anime(conn, FULL_ANIME).id
     created_before = conn.execute("SELECT created_at FROM anime WHERE id = %s", (first_id,)).fetchone()[0]
 
     changed = dataclasses.replace(FULL_ANIME, score=Decimal("9.10"), popularity=200000)
-    second_id = upsert_anime(conn, changed)
+    second_id = upsert_anime(conn, changed).id
 
     assert first_id == second_id
     assert count_rows("anime") == 1
@@ -114,7 +119,7 @@ def test_upsert_anime_twice_keeps_one_row_and_updates_values(conn, count_rows):
 
 def test_link_twice_creates_one_link(conn, count_rows):
     franchise_id = upsert_franchise(conn, Franchise("Test Franchise", "test"))
-    anime_id = upsert_anime(conn, FULL_ANIME)
+    anime_id = upsert_anime(conn, FULL_ANIME).id
 
     assert link_anime_to_franchise(conn, anime_id, franchise_id) is True
     assert link_anime_to_franchise(conn, anime_id, franchise_id) is False
@@ -124,7 +129,7 @@ def test_link_twice_creates_one_link(conn, count_rows):
 def test_anime_can_belong_to_two_franchises(conn, count_rows):
     first = upsert_franchise(conn, Franchise("Franchise A", "a"))
     second = upsert_franchise(conn, Franchise("Franchise B", "b"))
-    anime_id = upsert_anime(conn, FULL_ANIME)
+    anime_id = upsert_anime(conn, FULL_ANIME).id
 
     link_anime_to_franchise(conn, anime_id, first)
     link_anime_to_franchise(conn, anime_id, second)
@@ -140,7 +145,7 @@ def _import_once(conn):
     """Simulate one import run: a franchise, three anime and their links."""
     franchise_id = upsert_franchise(conn, Franchise("Test Franchise", "test"))
     for anilist_id in (900010, 900011, 900012):
-        anime_id = upsert_anime(conn, Anime(anilist_id=anilist_id, title=f"Anime {anilist_id}"))
+        anime_id = upsert_anime(conn, Anime(anilist_id=anilist_id, title=f"Anime {anilist_id}")).id
         link_anime_to_franchise(conn, anime_id, franchise_id)
 
 
@@ -162,9 +167,9 @@ def test_list_anime_by_franchise_groups_and_sorts(conn):
     zeta = upsert_franchise(conn, Franchise("Zeta", "z"))
     alpha = upsert_franchise(conn, Franchise("Alpha", "a"))
     upsert_franchise(conn, Franchise("Empty", "e"))  # no anime linked
-    less_popular = upsert_anime(conn, Anime(anilist_id=900030, title="Less popular", popularity=10))
-    more_popular = upsert_anime(conn, Anime(anilist_id=900031, title="More popular", popularity=500))
-    no_popularity = upsert_anime(conn, Anime(anilist_id=900032, title="Unknown popularity"))
+    less_popular = upsert_anime(conn, Anime(anilist_id=900030, title="Less popular", popularity=10)).id
+    more_popular = upsert_anime(conn, Anime(anilist_id=900031, title="More popular", popularity=500)).id
+    no_popularity = upsert_anime(conn, Anime(anilist_id=900032, title="Unknown popularity")).id
     for anime_id in (less_popular, more_popular, no_popularity):
         link_anime_to_franchise(conn, anime_id, alpha)
     link_anime_to_franchise(conn, less_popular, zeta)

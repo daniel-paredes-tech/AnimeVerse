@@ -133,7 +133,7 @@ def test_database_failure_gives_a_clear_message(serve):
 
 def test_load_from_database_reads_committed_data(committing_conn, test_db_settings):
     franchise_id = upsert_franchise(committing_conn, Franchise("Test Franchise", "test"))
-    anime_id = upsert_anime(committing_conn, Anime(anilist_id=900040, title="Stored Anime"))
+    anime_id = upsert_anime(committing_conn, Anime(anilist_id=900040, title="Stored Anime")).id
     link_anime_to_franchise(committing_conn, anime_id, franchise_id)
     committing_conn.commit()
 

@@ -99,14 +99,14 @@ def import_franchise(client: AniListClient, conn: psycopg.Connection, config: Fr
 
     # 4. Save everything for this franchise in one transaction.
     try:
-        count_before = repository.count_anime(conn)
         franchise_id = repository.upsert_franchise(conn, Franchise(config.name, config.search))
-        new_links = 0
+        new = new_links = 0
         for anime in members:
-            anime_id = repository.upsert_anime(conn, anime)
-            if repository.link_anime_to_franchise(conn, anime_id, franchise_id):
+            saved = repository.upsert_anime(conn, anime)
+            if saved.created:
+                new += 1
+            if repository.link_anime_to_franchise(conn, saved.id, franchise_id):
                 new_links += 1
-        new = repository.count_anime(conn) - count_before
         conn.commit()
     except psycopg.Error as exc:
         conn.rollback()
