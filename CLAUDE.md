@@ -242,4 +242,17 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'   # SQ
 
 - `db/schema.sql` only runs when the data volume is empty (first start). Editing it has no effect on an existing database until the volume is reset or the change is applied by hand.
 - The host port is `POSTGRES_PORT` in `.env` (default 5432). On the developer's machine it is 5433, because another project's container already uses 5432.
-- There are no Python app, import or test commands yet. Add them here when they exist.
+
+Python: 3.14 (installed with Homebrew; the macOS system Python 3.9 is too old). Dependencies are pinned in `requirements.txt` (app) and `requirements-dev.txt` (app + pytest).
+
+```bash
+/opt/homebrew/bin/python3.14 -m venv .venv            # create the virtual environment (once)
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest                            # all tests (the database must be running)
+.venv/bin/python -m pytest tests/test_repository.py   # one file
+.venv/bin/python -m pytest tests/test_repository.py::test_link_twice_creates_one_link   # one test
+```
+
+- Database tests never use the main database. `tests/conftest.py` creates `<POSTGRES_DB>_test` in the same container, rebuilds it from `db/schema.sql` at the start of every run, and rolls back each test's changes.
+- Repository functions never commit; the caller controls transactions.
+- There are no import or web app commands yet. Add them here when they exist.
