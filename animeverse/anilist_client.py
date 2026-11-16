@@ -33,6 +33,9 @@ TIMEOUT_SECONDS = 10.0
 DEFAULT_REQUESTS_PER_MINUTE = 30
 # AniList documents a 1-minute timeout after a 429; used if Retry-After is missing or invalid.
 DEFAULT_RETRY_AFTER_SECONDS = 60.0
+# Longest Retry-After we are willing to sleep for. A larger value means something
+# is wrong (or the header is nonsense), so the request fails instead of hanging.
+MAX_RETRY_AFTER_SECONDS = 120.0
 # Temporary server-side failures worth retrying. 4xx errors are never retried.
 RETRYABLE_STATUS_CODES = frozenset({500, 502, 503, 504})
 
@@ -168,7 +171,8 @@ class AniListClient:
         """Send one GraphQL request and return its "data" object.
 
         Retries network errors, timeouts and 5xx responses with exponential
-        backoff (1 s, 2 s, 4 s), and 429 responses after Retry-After.
+        backoff (1 s, 2 s, 4 s), and 429 responses after Retry-After
+        (unless it asks for more than MAX_RETRY_AFTER_SECONDS).
         Everything else is returned or raised immediately.
         """
         retries_done = 0
@@ -187,6 +191,12 @@ class AniListClient:
                 if status == 429:
                     problem = "rate limit reached (HTTP 429)"
                     wait = self._retry_after(response)
+                    if wait > MAX_RETRY_AFTER_SECONDS:
+                        raise AniListError(
+                            f"AniList rate limit reached and it asked to wait {wait:.0f} s, "
+                            f"more than the {MAX_RETRY_AFTER_SECONDS:.0f} s this client accepts.",
+                            status=status,
+                        )
                 elif status in RETRYABLE_STATUS_CODES:
                     problem = f"server error (HTTP {status})"
                     wait = 2.0**retries_done

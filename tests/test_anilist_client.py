@@ -174,6 +174,17 @@ def test_rate_limited_without_retry_after_waits_sixty_seconds(make_client, fake_
     assert fake_time.sleeps == [60.0]
 
 
+def test_rate_limited_with_a_huge_retry_after_fails_instead_of_waiting(make_client, fake_time):
+    fake = FakeAniList(error(429, "Too Many Requests.", headers={"Retry-After": "86400"}), page([]))
+
+    with pytest.raises(AniListError) as caught:
+        make_client(fake).search_anime_page("naruto", 1)
+
+    assert caught.value.status == 429
+    assert len(fake.requests) == 1  # no retry
+    assert fake_time.sleeps == []  # and no day-long sleep
+
+
 # --- Permanent failures are raised immediately ------------------------------
 
 
