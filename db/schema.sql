@@ -61,3 +61,8 @@ CREATE TABLE anime_franchises (
     -- franchise_id comes first so "all anime in a franchise" uses this index.
     PRIMARY KEY (franchise_id, anime_id)
 );
+
+-- The primary key above only helps lookups that start from a franchise. This
+-- index covers the other direction: "which franchises is this anime in?", and
+-- the ON DELETE CASCADE check when an anime is deleted.
+CREATE INDEX anime_franchises_anime_id_idx ON anime_franchises (anime_id);
