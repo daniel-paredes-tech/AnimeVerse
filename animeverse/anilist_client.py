@@ -41,7 +41,7 @@ RETRYABLE_STATUS_CODES = frozenset({500, 502, 503, 504})
 
 HEADERS = {
     "Accept": "application/json",
-    # Generic identification only: no personal or project-owner details.
+    # Tells AniList which client is calling.
     "User-Agent": "AnimeVerse/0.1 (educational project)",
 }
 
