@@ -6,3 +6,6 @@ psycopg[binary]==3.3.9
 
 # Loads settings from the .env file into environment variables.
 python-dotenv==1.2.4
+
+# HTTP client used to call the AniList API.
+httpx==0.28.1
