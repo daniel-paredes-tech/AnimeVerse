@@ -14,8 +14,15 @@ FULL = Anime(
     episodes=12,
     status="NOT_YET_RELEASED",
     aired_from=date(2020, 4, 1),
+    start_year=2020,
     score=Decimal("8.50"),
 )
+
+
+def test_year_is_shown_even_when_the_full_date_is_unknown():
+    page = render_page({"Alpha": [Anime(anilist_id=3, title="Announced", start_year=2027)]})
+
+    assert '<td class="num">2027</td>' in page
 
 
 def test_page_shows_summary_navigation_and_rows():

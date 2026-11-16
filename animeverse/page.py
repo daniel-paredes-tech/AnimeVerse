@@ -97,7 +97,7 @@ def _row(anime: Anime) -> str:
         f'<td class="num">{_e(_value(anime.episodes))}</td>'
         f"<td>{_e(_label(anime.status))}</td>"
         f'<td class="num">{_e(_value(anime.score))}</td>'
-        f'<td class="num">{_e(_value(anime.aired_from.year if anime.aired_from else None))}</td>'
+        f'<td class="num">{_e(_value(anime.start_year))}</td>'
         "</tr>"
     )
 

@@ -33,10 +33,13 @@ class Anime:
     type: str | None = None
     episodes: int | None = None
     status: str | None = None
-    aired_from: date | None = None
+    aired_from: date | None = None  # only when year, month and day are all known
     aired_to: date | None = None
     score: Decimal | None = None  # 0-10; Decimal, to match NUMERIC(4,2) exactly
     popularity: int | None = None  # number of AniList users with it on their list
     synopsis: str | None = None
     image_url: str | None = None
     anilist_url: str | None = None
+    # Known even when the full date is not (aired_from/aired_to need year, month and day).
+    start_year: int | None = None
+    end_year: int | None = None

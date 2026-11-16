@@ -7,6 +7,8 @@ Policy:
 - A missing or invalid REQUIRED field (id, title.romaji) rejects the item.
 - An invalid OPTIONAL field becomes None (NULL) and a warning is logged.
   A merely missing optional value is normal and logged as nothing.
+- Dates: AniList sends {year, month, day} and any part may be missing. A full
+  date becomes a date; a partial one is not guessed, but its year is kept.
 - parse_anime_list never raises for a bad item: one malformed record must
   not stop the rest of the import.
 """
@@ -85,9 +87,14 @@ def parse_anime(raw: Any) -> Anime:
     f = _OptionalFields(anilist_id)
     aired_from = f.date(raw.get("startDate"), "startDate")
     aired_to = f.date(raw.get("endDate"), "endDate")
-    if aired_from and aired_to and aired_to < aired_from:
-        f.warn("endDate", aired_to, "is before startDate")
-        aired_to = None
+    start_year = f.year(raw.get("startDate"), "startDate")
+    end_year = f.year(raw.get("endDate"), "endDate")
+    ends_before_start = (aired_from and aired_to and aired_to < aired_from) or (
+        start_year and end_year and end_year < start_year
+    )
+    if ends_before_start:
+        f.warn("endDate", raw.get("endDate"), "is before startDate")
+        aired_to = end_year = None
 
     return Anime(
         anilist_id=anilist_id,
@@ -105,6 +112,8 @@ def parse_anime(raw: Any) -> Anime:
         synopsis=f.synopsis(raw.get("description"), "description"),
         image_url=f.url(f.nested(raw, "coverImage", "large"), "coverImage.large"),
         anilist_url=f.url(raw.get("siteUrl"), "siteUrl"),
+        start_year=start_year,
+        end_year=end_year,
     )
 
 
@@ -176,6 +185,18 @@ class _OptionalFields:
         except ValueError:  # e.g. February 30th, or month 13
             self.warn(field, value, "is not a real calendar date")
             return None
+
+    def year(self, value: Any, field: str) -> int | None:
+        """The year of a {year, month, day} date, kept even when month or day is missing."""
+        if not isinstance(value, dict) or value.get("year") is None:
+            return None  # missing is normal; a non-object was already reported by date()
+        year = value["year"]
+        if not _is_whole_number(year) or not date.min.year <= year <= date.max.year:
+            # With all three parts present, date() has already warned about this value.
+            if value.get("month") is None or value.get("day") is None:
+                self.warn(field, value, "has a year that is not a real year")
+            return None
+        return year
 
     def url(self, value: Any, field: str) -> str | None:
         """Only http(s) URLs: rejects things like javascript: links."""

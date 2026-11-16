@@ -34,6 +34,8 @@ FULL_ANIME = Anime(
     synopsis="A made-up anime used only in tests.",
     image_url="https://example.com/test.jpg",
     anilist_url="https://example.com/anime/900001",
+    start_year=2020,
+    end_year=2020,
 )
 
 
@@ -67,7 +69,7 @@ def test_upsert_anime_stores_every_field(conn):
         """
         SELECT anilist_id, title, mal_id, title_english, title_japanese, type,
                episodes, status, aired_from, aired_to, score, popularity,
-               synopsis, image_url, anilist_url
+               synopsis, image_url, anilist_url, start_year, end_year
         FROM anime WHERE id = %s
         """,
         (anime_id,),

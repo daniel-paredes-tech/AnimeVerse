@@ -52,6 +52,7 @@ def test_complete_real_item_maps_every_field(samples):
     assert anime.title_japanese == "NARUTO -ナルト-"
     assert (anime.type, anime.episodes, anime.status) == ("TV", 220, "FINISHED")
     assert (anime.aired_from, anime.aired_to) == (date(2002, 10, 3), date(2007, 2, 8))
+    assert (anime.start_year, anime.end_year) == (2002, 2007)
     assert anime.score == Decimal("8.00")  # weightedScore 80
     assert anime.popularity == 741939
     assert anime.anilist_url == "https://anilist.co/anime/20"
@@ -79,11 +80,12 @@ def test_real_html_entity_is_decoded(samples):
     assert parse_anime(samples[7367]).synopsis.endswith("don't miss it‼")  # &#8252;
 
 
-def test_real_partial_dates_become_none_without_warning(samples, caplog):
+def test_real_partial_date_keeps_its_year_without_warning(samples, caplog):
     with caplog.at_level(logging.WARNING):
         anime = parse_anime(samples[171630])  # THE ONE PIECE: start 2027-02-??, end empty
 
-    assert (anime.aired_from, anime.aired_to) == (None, None)
+    assert (anime.aired_from, anime.aired_to) == (None, None)  # no day: not a full date
+    assert (anime.start_year, anime.end_year) == (2027, None)  # but the year is known
     assert anime.type is None  # format is null in the real data
     assert caplog.records == []  # missing parts are normal, not an error
 
@@ -170,6 +172,9 @@ def test_nul_characters_are_removed_from_text():
         ({"startDate": {"year": 2020, "month": 2, "day": 30}}, "aired_from"),  # Feb 30
         ({"startDate": {"year": "2020", "month": 1, "day": 1}}, "aired_from"),
         ({"startDate": "2020-01-01"}, "aired_from"),
+        ({"startDate": {"year": "2020"}}, "start_year"),  # year only, and not a number
+        ({"startDate": {"year": 20200, "month": 4}}, "start_year"),  # not a real year
+        ({"startDate": {"year": 2020}, "endDate": {"year": 2019}}, "end_year"),  # ends before it starts
     ],
 )
 def test_invalid_optional_field_becomes_none_with_warning(overrides, field, caplog):
@@ -188,6 +193,14 @@ def test_invalid_optional_field_becomes_none_with_warning(overrides, field, capl
 )
 def test_score_is_converted_from_0_100_to_0_10(weighted_score, expected):
     assert parse_anime(minimal(weightedScore=weighted_score)).score == expected
+
+
+def test_invalid_full_date_loses_its_year_too_with_one_warning(caplog):
+    with caplog.at_level(logging.WARNING):
+        anime = parse_anime(minimal(startDate={"year": 0, "month": 1, "day": 1}))
+
+    assert (anime.aired_from, anime.start_year) == (None, None)
+    assert len(caplog.records) == 1
 
 
 def test_end_date_before_start_date_is_dropped_with_warning(caplog):

@@ -69,13 +69,14 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> SavedAnime:
         INSERT INTO anime (
             anilist_id, mal_id, title, title_english, title_japanese, type,
             episodes, status, aired_from, aired_to, score, popularity,
-            synopsis, image_url, anilist_url
+            synopsis, image_url, anilist_url, start_year, end_year
         )
         VALUES (
             %(anilist_id)s, %(mal_id)s, %(title)s, %(title_english)s,
             %(title_japanese)s, %(type)s, %(episodes)s, %(status)s,
             %(aired_from)s, %(aired_to)s, %(score)s, %(popularity)s,
-            %(synopsis)s, %(image_url)s, %(anilist_url)s
+            %(synopsis)s, %(image_url)s, %(anilist_url)s,
+            %(start_year)s, %(end_year)s
         )
         ON CONFLICT (anilist_id) DO UPDATE SET
             mal_id         = EXCLUDED.mal_id,
@@ -92,6 +93,8 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> SavedAnime:
             synopsis       = EXCLUDED.synopsis,
             image_url      = EXCLUDED.image_url,
             anilist_url    = EXCLUDED.anilist_url,
+            start_year     = EXCLUDED.start_year,
+            end_year       = EXCLUDED.end_year,
             updated_at     = now()
         RETURNING id, (xmax = 0) AS created
         """,
@@ -112,7 +115,8 @@ def list_anime_by_franchise(conn: psycopg.Connection) -> dict[str, list[Anime]]:
         SELECT f.name,
                a.anilist_id, a.title, a.mal_id, a.title_english, a.title_japanese,
                a.type, a.episodes, a.status, a.aired_from, a.aired_to, a.score,
-               a.popularity, a.synopsis, a.image_url, a.anilist_url
+               a.popularity, a.synopsis, a.image_url, a.anilist_url,
+               a.start_year, a.end_year
         FROM franchises f
         LEFT JOIN anime_franchises af ON af.franchise_id = f.id
         LEFT JOIN anime a ON a.id = af.anime_id

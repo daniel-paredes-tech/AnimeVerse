@@ -32,10 +32,16 @@ CREATE TABLE anime (
     type            TEXT,                         -- AniList format
     episodes        INTEGER CHECK (episodes >= 0),
     status          TEXT,
-    -- AniList sends dates as {year, month, day}; the parser stores NULL when
-    -- any part is missing rather than inventing one.
+    -- AniList sends dates as {year, month, day}, and often only part of a date
+    -- is known (e.g. an anime announced for "2027"). A DATE needs all three
+    -- parts, so aired_from/aired_to are NULL unless the date is complete; the
+    -- parser never invents a month or a day. The year is stored on its own so
+    -- that a known year is not lost with the rest of a partial date.
+    -- These are calendar dates without a time or a time zone.
     aired_from      DATE,
     aired_to        DATE,
+    start_year      INTEGER CHECK (start_year > 0),
+    end_year        INTEGER CHECK (end_year > 0),
     -- 0-10 exact decimal: the parser converts AniList's 0-100 weightedScore
     -- (85 -> 8.50). The CHECKs are a last line of defence: the parser should
     -- reject impossible values before they get here.

@@ -41,12 +41,12 @@ ORDER BY popularity DESC NULLS LAST
 LIMIT 10;
 
 \echo '6. Every Naruto anime in release order'
-SELECT a.aired_from, a.title, a.type, a.episodes, a.score
+SELECT a.start_year, a.aired_from, a.title, a.type, a.episodes, a.score
 FROM anime a
 JOIN anime_franchises af ON af.anime_id = a.id
 JOIN franchises f ON f.id = af.franchise_id
 WHERE f.name = 'Naruto'
-ORDER BY a.aired_from NULLS LAST, a.title;
+ORDER BY a.start_year NULLS LAST, a.aired_from NULLS LAST, a.title;
 
 \echo '7. Missing values per column'
 SELECT count(*) AS anime,
@@ -55,6 +55,7 @@ SELECT count(*) AS anime,
        count(*) FILTER (WHERE type IS NULL) AS no_type,
        count(*) FILTER (WHERE episodes IS NULL) AS no_episodes,
        count(*) FILTER (WHERE aired_from IS NULL) AS no_start_date,
+       count(*) FILTER (WHERE start_year IS NULL) AS no_start_year,
        count(*) FILTER (WHERE score IS NULL) AS no_score,
        count(*) FILTER (WHERE synopsis IS NULL) AS no_synopsis
 FROM anime;
