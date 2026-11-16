@@ -21,7 +21,7 @@ Everything runs on your own computer:
 
 - **PostgreSQL** runs in a local Docker container, and its port is bound to `127.0.0.1`, so it can't be reached from other devices on your network.
 - **Tests** need no internet connection (except the optional `live` test, which you must ask for explicitly).
-- **Nothing is published or hosted anywhere.** There is no server, website or remote service.
+- **The application is not deployed or hosted anywhere.** There is no server, website or remote service; the source code is on GitHub.
 
 The only outside connection is the **import** itself: it sends one search request per franchise to the AniList API to download the anime data. No account, key or personal information is sent.
 
