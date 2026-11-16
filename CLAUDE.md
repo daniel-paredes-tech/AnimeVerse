@@ -12,7 +12,7 @@ The goal is to build a local anime information platform using public APIs, Pytho
 
 The application will initially collect anime-related information from the AniList API and store it in a PostgreSQL database.
 
-The long-term vision is to create a website where users can explore anime, search for characters, browse information and discover different anime universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others.
+The project covers anime from several universes, including Naruto, Jujutsu Kaisen, Yu-Gi-Oh! and others. A website frontend is out of scope (the developer's decision on 2026-11-16): the project ends at the data pipeline and the FastAPI backend.
 
 This is primarily a learning project. Code quality, understanding and good engineering practices are more important than development speed.
 
@@ -41,7 +41,6 @@ Use the following technologies:
 - Database: PostgreSQL.
 - Database execution: Docker Compose.
 - Database access: SQL and a dedicated repository layer.
-- Frontend: HTML, CSS and vanilla JavaScript.
 - Testing: Pytest.
 - Version control: Git and GitHub.
 
@@ -123,6 +122,7 @@ Verified AniList rules (2026-11-16):
 - Pagination: `Page(page, perPage) { pageInfo { hasNextPage } }`. Rely only on `hasNextPage`: the docs say `total` and `lastPage` are currently inaccurate.
 - Terms of use: free for non-commercial use. Mass data collection ("hoarding") is prohibited (the docs say they are lenient with educational projects). An app may not be named just "AniList".
 - `averageScore` is deprecated; use `weightedScore` (0–100).
+- Discrepancy: `description(asHtml: false)` still returns HTML (`<br>`, `<i>`, `<li>`… and entities like `&mdash;`). The parser converts it to plain text and keeps "(Source: …)" credits.
 - Search is loose: e.g. "demon slayer" also returned an unrelated anime, so imports need a rule for which results belong to a franchise.
 
 Before writing the API client:
