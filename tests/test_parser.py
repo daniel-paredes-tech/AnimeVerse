@@ -108,6 +108,7 @@ def test_real_missing_optional_values_become_none(samples):
         minimal(id=True),  # bool counts as int in Python: must be refused
         minimal(id=0),
         minimal(id=-5),
+        minimal(id=2_147_483_648),  # does not fit in a PostgreSQL INTEGER
         {"id": 900001},  # no title at all
         minimal(title="Test Anime"),  # title is not an object
         minimal(title={"romaji": None}),
@@ -136,6 +137,15 @@ def test_text_is_trimmed_and_empty_text_becomes_none():
     assert anime.status == "FINISHED"
 
 
+def test_nul_characters_are_removed_from_text():
+    # PostgreSQL refuses a NUL character inside TEXT.
+    anime = parse_anime(minimal(title={"romaji": "Te\x00st", "english": "\x00"}, description="A\x00B"))
+
+    assert anime.title == "Test"
+    assert anime.title_english is None
+    assert anime.synopsis == "AB"
+
+
 # --- Optional fields: invalid -> None + warning --------------------------------
 
 
@@ -146,6 +156,7 @@ def test_text_is_trimmed_and_empty_text_becomes_none():
         ({"episodes": "12"}, "episodes"),
         ({"episodes": True}, "episodes"),
         ({"popularity": -1}, "popularity"),
+        ({"popularity": 2_147_483_648}, "popularity"),  # does not fit in a PostgreSQL INTEGER
         ({"idMal": 0}, "mal_id"),
         ({"format": 5}, "type"),
         ({"weightedScore": 101}, "score"),

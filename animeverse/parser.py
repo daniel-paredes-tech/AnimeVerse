@@ -25,6 +25,10 @@ from animeverse.models import Anime
 
 logger = logging.getLogger(__name__)
 
+# Largest value of a PostgreSQL INTEGER column. A bigger number would make the
+# INSERT fail, so the parser refuses it here instead.
+MAX_INTEGER = 2_147_483_647
+
 
 class InvalidAnimeError(Exception):
     """Raised when an item cannot become an Anime (a required field is bad)."""
@@ -68,13 +72,13 @@ def parse_anime(raw: Any) -> Anime:
 
     # Required fields: without them we can neither identify nor display the anime.
     anilist_id = raw.get("id")
-    if not _is_whole_number(anilist_id) or anilist_id <= 0:
-        raise InvalidAnimeError(f"'id' must be a positive whole number, got {_short(anilist_id)}")
+    if not _is_whole_number(anilist_id) or not 0 < anilist_id <= MAX_INTEGER:
+        raise InvalidAnimeError(f"'id' must be a whole number from 1 to {MAX_INTEGER}, got {_short(anilist_id)}")
     titles = raw.get("title")
     if not isinstance(titles, dict):
         raise InvalidAnimeError(f"'title' must be an object, got {type(titles).__name__}")
     title = titles.get("romaji")
-    if not isinstance(title, str) or not title.strip():
+    if not isinstance(title, str) or not _clean_text(title):
         raise InvalidAnimeError(f"'title.romaji' must be non-empty text, got {_short(title)}")
 
     # Optional fields: invalid values become None with a warning.
@@ -87,7 +91,7 @@ def parse_anime(raw: Any) -> Anime:
 
     return Anime(
         anilist_id=anilist_id,
-        title=title.strip(),
+        title=_clean_text(title),
         mal_id=f.whole_number(raw.get("idMal"), "idMal", minimum=1),
         title_english=f.text(titles.get("english"), "title.english"),
         title_japanese=f.text(titles.get("native"), "title.native"),
@@ -133,13 +137,13 @@ class _OptionalFields:
         if not isinstance(value, str):
             self.warn(field, value, "is not text")
             return None
-        return value.strip() or None
+        return _clean_text(value) or None
 
     def whole_number(self, value: Any, field: str, minimum: int) -> int | None:
         if value is None:
             return None
-        if not _is_whole_number(value) or value < minimum:
-            self.warn(field, value, f"is not a whole number >= {minimum}")
+        if not _is_whole_number(value) or not minimum <= value <= MAX_INTEGER:
+            self.warn(field, value, f"is not a whole number from {minimum} to {MAX_INTEGER}")
             return None
         return value
 
@@ -209,6 +213,11 @@ def _html_to_plain_text(text: str) -> str | None:
     text = "\n".join(line.strip() for line in text.split("\n"))  # spaces around line breaks
     text = _THREE_OR_MORE_NEWLINES.sub("\n\n", text)  # at most one blank line
     return text.strip() or None
+
+
+def _clean_text(text: str) -> str:
+    """Trim the text and drop NUL characters, which PostgreSQL cannot store in TEXT."""
+    return text.replace("\x00", "").strip()
 
 
 def _is_whole_number(value: Any) -> bool:
