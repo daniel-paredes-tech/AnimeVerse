@@ -92,6 +92,11 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
     return row[0]
 
 
+def count_anime(conn: psycopg.Connection) -> int:
+    """Number of rows in the anime table (used to tell new anime from refreshed ones)."""
+    return conn.execute("SELECT count(*) FROM anime").fetchone()[0]
+
+
 def link_anime_to_franchise(conn: psycopg.Connection, anime_id: int, franchise_id: int) -> bool:
     """Record that an anime belongs to a franchise.
 

@@ -60,6 +60,27 @@ def conn(test_db_settings):
 
 
 @pytest.fixture
+def committing_conn(test_db_settings):
+    """For code that commits itself (like the importer), so rollback can't undo it.
+
+    Instead, every table is emptied before and after the test.
+    """
+    connection = connect(test_db_settings)
+
+    def empty_tables():
+        connection.execute("TRUNCATE anime_franchises, anime, franchises RESTART IDENTITY")
+        connection.commit()
+
+    empty_tables()
+    try:
+        yield connection
+    finally:
+        connection.rollback()  # in case the test left a failed transaction open
+        empty_tables()
+        connection.close()
+
+
+@pytest.fixture
 def count_rows(conn):
     """Helper: count the rows in a table."""
 
