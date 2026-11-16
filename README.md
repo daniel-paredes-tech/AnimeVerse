@@ -152,6 +152,29 @@ To add a franchise, add one line to `animeverse/franchises.py`.
 - **Score and popularity.** AniList's `weightedScore` (0–100) is stored as a 0–10 decimal. `popularity` is the number of AniList users with the anime on their list; AniList's per-format rankings were not used because they aren't comparable across formats.
 - **Imports never delete.** An anime that disappears from AniList's search results is kept.
 
+## What the data revealed
+
+Findings from the imported data (163 anime, imported on 2026-11-16) and from exploring the API. Scores and popularity change over time, so the numbers are a snapshot.
+
+### In the anime data
+
+- **Movies outnumber TV series.** Of the 163 anime, 62 are movies and only 41 are TV series; the rest are specials, OVAs, ONAs and music videos. One Piece is the extreme case: 39 entries, but only 2 TV series and 16 movies.
+- **The longest-running show has no episode count.** One Piece is still airing, so AniList reports its episodes as unknown. The longest series with a known count is *Naruto: Shippuuden* (500 episodes).
+- **Newer franchises score higher.** Demon Slayer (8.08), Attack on Titan (8.02) and Jujutsu Kaisen (7.98) have the highest average scores; Dragon Ball (6.78) and Yu-Gi-Oh! (6.52) the lowest. The three most popular anime are also from the newer franchises: the first seasons of *Attack on Titan*, *Demon Slayer* and *Jujutsu Kaisen*, each on about a million users' lists.
+- **A one-off special ties for the highest score.** *ONE PIECE FAN LETTER* (a special) scores 8.90, the same as *Attack on Titan Season 3 Part 2*.
+- **AniList and MyAnimeList ids are different numbers.** For 77 of the 158 anime that have both ids, they differ (for example, *Attack on Titan: The Final Season* is 110277 on AniList and 40028 on MyAnimeList). 5 anime have no MyAnimeList id at all.
+- **Many values are simply missing.** 34 anime have no English title, 11 have no start date, 8 have no score and 6 have no episode count. They are mostly unreleased or still-airing anime.
+- **Spin-offs don't always carry the franchise name.** *Juju Sanpo* (Jujutsu Kaisen) and *Kimetsu Gakuen* (Demon Slayer) would have been filtered out without extra match terms.
+
+### In the AniList API
+
+- **"Plain text" descriptions contain HTML.** Even with `description(asHtml: false)`, 134 of the 163 descriptions in the search results contained tags such as `<br>`, `<i>` and `<li>`, and some contained entities such as `&mdash;`. About two thirds end with a credit like "(Source: Anime News Network)".
+- **Search returns unrelated results.** The top result for "Demon Slayer" was *Onigiri*, an anime about an online game.
+- **The result count is not reliable.** A search for "naruto" reported 5,000 results across 2,500 pages, yet everything fits on one page of 50. AniList's docs confirm that `total` and `lastPage` are currently inaccurate; only `hasNextPage` can be trusted.
+- **Page size is silently capped.** Asking for 100 results per page returns 50, without any error.
+- **The documented score field is deprecated.** `averageScore` is marked as deprecated in AniList's own schema, in favour of `weightedScore`.
+- **The rate limit is a third of the documented one.** The docs give 90 requests per minute, but the API currently runs in a "degraded state" at 30, and the `X-RateLimit-Limit` response header reports 30.
+
 ## Limitations
 
 - An anime whose title doesn't mention its franchise (a spin-off with a different name) is excluded until a match term is added. The report always lists excluded anime, so nothing disappears silently.
