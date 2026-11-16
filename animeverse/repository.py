@@ -48,9 +48,9 @@ def upsert_franchise(conn: psycopg.Connection, franchise: Franchise) -> int:
 
 
 def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
-    """Insert an anime, or update every field if its mal_id already exists.
+    """Insert an anime, or update every field if its anilist_id already exists.
 
-    Running this twice with the same mal_id never creates a second row.
+    Running this twice with the same anilist_id never creates a second row.
     created_at keeps its original value; updated_at is set to the current
     transaction time on every update.
 
@@ -59,17 +59,18 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
     row = conn.execute(
         """
         INSERT INTO anime (
-            mal_id, title, title_english, title_japanese, type, episodes,
-            status, aired_from, aired_to, score, rank, popularity,
-            synopsis, image_url, mal_url
+            anilist_id, mal_id, title, title_english, title_japanese, type,
+            episodes, status, aired_from, aired_to, score, popularity,
+            synopsis, image_url, anilist_url
         )
         VALUES (
-            %(mal_id)s, %(title)s, %(title_english)s, %(title_japanese)s,
-            %(type)s, %(episodes)s, %(status)s, %(aired_from)s, %(aired_to)s,
-            %(score)s, %(rank)s, %(popularity)s, %(synopsis)s, %(image_url)s,
-            %(mal_url)s
+            %(anilist_id)s, %(mal_id)s, %(title)s, %(title_english)s,
+            %(title_japanese)s, %(type)s, %(episodes)s, %(status)s,
+            %(aired_from)s, %(aired_to)s, %(score)s, %(popularity)s,
+            %(synopsis)s, %(image_url)s, %(anilist_url)s
         )
-        ON CONFLICT (mal_id) DO UPDATE SET
+        ON CONFLICT (anilist_id) DO UPDATE SET
+            mal_id         = EXCLUDED.mal_id,
             title          = EXCLUDED.title,
             title_english  = EXCLUDED.title_english,
             title_japanese = EXCLUDED.title_japanese,
@@ -79,11 +80,10 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> int:
             aired_from     = EXCLUDED.aired_from,
             aired_to       = EXCLUDED.aired_to,
             score          = EXCLUDED.score,
-            rank           = EXCLUDED.rank,
             popularity     = EXCLUDED.popularity,
             synopsis       = EXCLUDED.synopsis,
             image_url      = EXCLUDED.image_url,
-            mal_url        = EXCLUDED.mal_url,
+            anilist_url    = EXCLUDED.anilist_url,
             updated_at     = now()
         RETURNING id
         """,
