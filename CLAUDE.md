@@ -227,3 +227,19 @@ The priority is to build a project that the developer fully understands and can 
 Do not optimize for generating the largest amount of code.
 
 Optimize for learning, correctness, maintainability and understanding.
+
+## 12. Commands
+
+Database: PostgreSQL 18 in Docker. Settings come from `.env`, which you create by copying `.env.example`.
+
+```bash
+docker compose up -d       # start the database
+docker compose ps          # status: wait for "healthy"
+docker compose down        # stop; the data stays in the pgdata volume
+docker compose down -v     # stop and DELETE all data (needed to re-apply schema changes)
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'   # SQL shell, no password typed
+```
+
+- `db/schema.sql` only runs when the data volume is empty (first start). Editing it has no effect on an existing database until the volume is reset or the change is applied by hand.
+- The host port is `POSTGRES_PORT` in `.env` (default 5432). On the developer's machine it is 5433, because another project's container already uses 5432.
+- There are no Python app, import or test commands yet. Add them here when they exist.
