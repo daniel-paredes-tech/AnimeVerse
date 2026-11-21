@@ -30,7 +30,8 @@ import psycopg
 
 from animeverse import repository
 from animeverse.anilist_client import AniListClient, AniListError
-from animeverse.config.franchises import FRANCHISES, FranchiseDefinition
+from animeverse.config.franchises import FRANCHISES
+from animeverse.domain.membership import FranchiseDefinition
 from animeverse.domain.models import Anime
 from animeverse.parser import Rejection, parse_anime_list
 

@@ -14,7 +14,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Protocol
 
-from animeverse.domain.models import Anime
+from animeverse.domain.models import Anime, Franchise
 
 
 class MembershipRule(Protocol):
@@ -51,3 +51,15 @@ class TitleMatchRule:
     def includes(self, anime: Anime) -> bool:
         titles = [normalize(title) for title in (anime.title, anime.title_english) if title]
         return any(normalize(term) in title for term in self.terms for title in titles)
+
+
+@dataclass(frozen=True)
+class FranchiseDefinition:
+    """What to import for one franchise: what to search for, and which results to keep."""
+
+    franchise: Franchise
+    rule: MembershipRule
+
+    @property
+    def name(self) -> str:
+        return self.franchise.name

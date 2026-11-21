@@ -13,22 +13,8 @@ The match terms were checked against real AniList results on 2026-11-16:
 whose titles don't mention One Piece.
 """
 
-from dataclasses import dataclass
-
-from animeverse.domain.membership import MembershipRule, TitleMatchRule
+from animeverse.domain.membership import FranchiseDefinition, TitleMatchRule
 from animeverse.domain.models import Franchise
-
-
-@dataclass(frozen=True)
-class FranchiseDefinition:
-    """What to import for one franchise: what to search for, and which results to keep."""
-
-    franchise: Franchise
-    rule: MembershipRule
-
-    @property
-    def name(self) -> str:
-        return self.franchise.name
 
 
 def by_title(name: str, search: str, match: tuple[str, ...]) -> FranchiseDefinition:
