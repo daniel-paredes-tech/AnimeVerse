@@ -18,7 +18,7 @@ class Franchise:
     """A franchise we import, e.g. Naruto. This is our data, not AniList's."""
 
     name: str  # display name, e.g. "Attack on Titan"
-    search_query: str  # the search text sent to AniList
+    search_query: str  # the text searched for in the data source
 
 
 @dataclass(frozen=True)

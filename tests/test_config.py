@@ -2,7 +2,7 @@
 
 import pytest
 
-from animeverse import config
+from animeverse.config import settings as config
 
 VALID_ENV = {
     "POSTGRES_USER": "user",

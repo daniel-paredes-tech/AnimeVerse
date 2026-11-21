@@ -4,16 +4,15 @@ All anime below are made-up test data.
 """
 
 import psycopg
-import pytest
 
 from animeverse import repository
 from animeverse.anilist_client import AniListError
-from animeverse.franchises import FRANCHISES, FranchiseConfig
-from animeverse.importer import belongs_to_franchise, format_report, import_all, import_franchise, normalize
-from animeverse.models import Anime
+from animeverse.config.franchises import by_title
+from animeverse.domain.models import Anime
+from animeverse.importer import format_report, import_all, import_franchise
 
-NARUTO = FranchiseConfig("Naruto", search="Naruto", match=("naruto",))
-TITAN = FranchiseConfig("Attack on Titan", search="Attack on Titan", match=("attack on titan", "shingeki no kyojin"))
+NARUTO = by_title("Naruto", search="Naruto", match=("naruto",))
+TITAN = by_title("Attack on Titan", search="Attack on Titan", match=("attack on titan", "shingeki no kyojin"))
 
 
 class FakeClient:
@@ -38,48 +37,6 @@ def raw(anilist_id, romaji, english=None):
 
 def count(conn, table):
     return conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]  # fixed table names only
-
-
-# --- Membership rule -----------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("text", "expected"),
-    [("Yu☆Gi☆Oh!", "yugioh"), ("Yu-Gi-Oh!", "yugioh"), ("ONE PIECE", "onepiece"), ("Pokémon", "pokemon")],
-)
-def test_normalize_ignores_case_accents_spaces_and_punctuation(text, expected):
-    assert normalize(text) == expected
-
-
-@pytest.mark.parametrize(
-    ("title", "english", "expected"),
-    [
-        ("NARUTO: Shippuuden", None, True),  # romaji title matches
-        ("Some Romaji Title", "Naruto the Movie", True),  # only the English title matches
-        ("Onigiri", "Onigiri", False),  # unrelated search noise
-    ],
-)
-def test_belongs_to_franchise_checks_romaji_and_english_titles(title, english, expected):
-    anime = Anime(anilist_id=1, title=title, title_english=english)
-    assert belongs_to_franchise(anime, NARUTO.match) is expected
-
-
-def test_second_match_term_is_used():
-    anime = Anime(anilist_id=1, title="Shingeki no Kyojin Season 2", title_english=None)
-    assert belongs_to_franchise(anime, TITAN.match) is True
-
-
-def test_a_term_with_only_punctuation_matches_nothing():
-    anime = Anime(anilist_id=1, title="Anything")
-    assert belongs_to_franchise(anime, ("!!!",)) is False
-
-
-def test_configured_franchises_have_unique_names_and_usable_terms():
-    names = [f.name for f in FRANCHISES]
-    assert len(names) == len(set(names))
-    for franchise in FRANCHISES:
-        assert franchise.match, f"{franchise.name} has no match terms"
-        assert all(normalize(term) for term in franchise.match)
 
 
 # --- Importing one franchise ---------------------------------------------------

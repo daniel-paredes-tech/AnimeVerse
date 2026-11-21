@@ -9,7 +9,7 @@ browser never connects anywhere except this local server.
 import html
 import re
 
-from animeverse.models import Anime
+from animeverse.domain.models import Anime
 
 IMPORT_COMMAND = ".venv/bin/python -m animeverse.import_anime"
 

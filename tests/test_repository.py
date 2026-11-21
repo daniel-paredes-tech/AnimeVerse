@@ -10,7 +10,7 @@ from decimal import Decimal
 import psycopg
 import pytest
 
-from animeverse.models import Anime, Franchise
+from animeverse.domain.models import Anime, Franchise
 from animeverse.repository import (
     link_anime_to_franchise,
     list_anime_by_franchise,

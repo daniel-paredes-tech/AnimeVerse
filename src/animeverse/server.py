@@ -30,8 +30,8 @@ from urllib.parse import urlsplit
 
 import psycopg
 
-from animeverse.config import ConfigError, DatabaseSettings, load_database_settings
-from animeverse.models import Anime
+from animeverse.config.settings import ConfigError, DatabaseSettings, load_database_settings
+from animeverse.domain.models import Anime
 from animeverse.page import render_page
 from animeverse.repository import connect, list_anime_by_franchise
 

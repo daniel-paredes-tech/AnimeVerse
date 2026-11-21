@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from psycopg import sql
 
-from animeverse.config import load_database_settings
+from animeverse.config.settings import load_database_settings
 from animeverse.repository import connect
 
 SCHEMA_FILE = Path(__file__).resolve().parent.parent / "db" / "schema.sql"

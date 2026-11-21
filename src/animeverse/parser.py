@@ -23,7 +23,7 @@ from decimal import Decimal
 from typing import Any, TypeGuard
 from urllib.parse import urlsplit
 
-from animeverse.models import Anime
+from animeverse.domain.models import Anime
 
 logger = logging.getLogger(__name__)
 

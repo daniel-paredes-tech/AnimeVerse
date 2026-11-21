@@ -15,8 +15,8 @@ from typing import Any, NamedTuple
 
 import psycopg
 
-from animeverse.config import DatabaseSettings
-from animeverse.models import Anime, Franchise
+from animeverse.config.settings import DatabaseSettings
+from animeverse.domain.models import Anime, Franchise
 
 
 class SavedAnime(NamedTuple):
