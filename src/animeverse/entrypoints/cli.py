@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from animeverse.application.import_catalog import ImportCatalog
 from animeverse.application.ports import StoreUnavailable
 from animeverse.config.franchises import FRANCHISES
-from animeverse.config.settings import ConfigError, DatabaseSettings, load_database_settings
+from animeverse.config.settings import ConfigError, DatabaseSettings, load_database_settings, load_log_level
 from animeverse.entrypoints.report import format_report
 from animeverse.entrypoints.web.server import DEFAULT_PORT, serve
 from animeverse.infrastructure.anilist.client import AniListClient
@@ -44,9 +44,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     serve_parser.add_argument("--open", action="store_true", help="open the page in your default browser")
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
-
+    logging.basicConfig(format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
     try:
+        logging.getLogger().setLevel(load_log_level())
         settings = load_database_settings()
     except ConfigError as exc:
         logger.error("Configuration problem: %s", exc)

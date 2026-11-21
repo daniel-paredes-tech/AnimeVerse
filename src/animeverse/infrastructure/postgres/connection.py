@@ -19,6 +19,8 @@ def connect(settings: DatabaseSettings) -> psycopg.Connection:
             user=settings.user,
             password=settings.password,
             dbname=settings.dbname,
+            sslmode=settings.sslmode,
+            connect_timeout=settings.connect_timeout,
         )
     except psycopg.OperationalError as exc:
         raise StoreUnavailable(str(exc).strip()) from exc

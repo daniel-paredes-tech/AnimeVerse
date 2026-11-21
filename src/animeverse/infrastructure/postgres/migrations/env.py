@@ -22,6 +22,7 @@ def database_url(settings: DatabaseSettings) -> URL:
         host=settings.host,
         port=settings.port,
         database=settings.dbname,
+        query={"sslmode": settings.sslmode, "connect_timeout": str(settings.connect_timeout)},
     )
 
 
