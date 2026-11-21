@@ -20,6 +20,7 @@ dev = [
     "pytest==9.2.0",
     "ruff==0.17.4",   # linter and formatter
     "mypy==2.4.1",    # type checker: makes the Protocol contracts between layers real
+    "import-linter==2.16",  # enforces which layer may import which
 ]
 
 [project.scripts]
@@ -48,3 +49,30 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
 python_version = "3.11"
 files = ["src"]
 strict = true
+
+# Architecture rules, checked by `lint-imports` (and by tests/test_architecture.py).
+[tool.importlinter]
+root_package = "animeverse"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: dependencies point towards the domain"
+type = "layers"
+layers = [
+    "animeverse.entrypoints",
+    "animeverse.infrastructure",
+    "animeverse.config",
+    "animeverse.application",
+    "animeverse.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain and application never import drivers, HTTP clients or frameworks"
+type = "forbidden"
+source_modules = ["animeverse.domain", "animeverse.application"]
+forbidden_modules = ["psycopg", "httpx", "dotenv", "sqlalchemy", "alembic"]
+
+[[tool.importlinter.contracts]]
+name = "Adapters are independent of each other"
+type = "independence"
+modules = ["animeverse.infrastructure.anilist", "animeverse.infrastructure.postgres"]
