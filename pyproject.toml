@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.scripts]
-animeverse = "animeverse.import_anime:main"
+animeverse = "animeverse.entrypoints.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

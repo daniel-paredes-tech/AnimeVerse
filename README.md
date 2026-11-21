@@ -32,7 +32,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
 # 4. Run the import
-.venv/bin/python -m animeverse.import_anime
+.venv/bin/animeverse import
 ```
 
 The import ends with a report:
@@ -64,7 +64,7 @@ docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < q
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
 # A read-only page in the browser, served on localhost only
-.venv/bin/python -m animeverse.server --open
+.venv/bin/animeverse serve --open
 ```
 
 ### Tests

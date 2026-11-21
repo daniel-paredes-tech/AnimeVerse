@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from animeverse.domain.models import Anime
-from animeverse.page import IMPORT_COMMAND, render_page
+from animeverse.entrypoints.web.page import IMPORT_COMMAND, render_page
 
 FULL = Anime(
     anilist_id=1,

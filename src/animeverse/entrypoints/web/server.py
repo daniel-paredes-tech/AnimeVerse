@@ -1,10 +1,10 @@
-"""Private, read-only local page with the anime stored in PostgreSQL.
+"""Private, read-only local page with the stored anime.
 
     docker compose up -d
-    .venv/bin/python -m animeverse.server --open      # http://localhost:8000
+    animeverse serve --open      # http://localhost:8000
 
-Read-only: the page never calls AniList and never writes to the database.
-To refresh the data, run the import command (python -m animeverse.import_anime).
+Read-only: the page reads through the CatalogReader port; it never calls
+AniList and never writes. To refresh the data, run `animeverse import`.
 
 Local only:
 - The server listens on 127.0.0.1, so other devices on the network can't reach it.
@@ -17,24 +17,16 @@ Local only:
 Built on Python's standard library (http.server): no web framework needed.
 """
 
-import argparse
 import errno
 import logging
-import sys
 import webbrowser
-from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlsplit
 
-import psycopg
-
-from animeverse.config.settings import ConfigError, DatabaseSettings, load_database_settings
-from animeverse.domain.models import Anime
-from animeverse.infrastructure.postgres.connection import connect
-from animeverse.infrastructure.postgres.repository import list_anime_by_franchise
-from animeverse.page import render_page
+from animeverse.application.ports import CatalogReader, StoreUnavailable
+from animeverse.entrypoints.web.page import render_page
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +38,6 @@ SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
 }
-
-LoadData = Callable[[], dict[str, list[Anime]]]
 
 
 def is_local_host(host_header: str | None) -> bool:
@@ -61,18 +51,8 @@ def is_local_host(host_header: str | None) -> bool:
     return hostname in LOCAL_HOSTNAMES
 
 
-def load_from_database(settings: DatabaseSettings) -> LoadData:
-    """A function that reads the current data, opening a fresh connection each time."""
-
-    def load() -> dict[str, list[Anime]]:
-        with connect(settings) as conn:
-            return list_anime_by_franchise(conn)
-
-    return load
-
-
-def make_handler(load_data: LoadData) -> type[BaseHTTPRequestHandler]:
-    """Build the request handler. load_data is passed in so tests can use fake data."""
+def make_handler(reader: CatalogReader) -> type[BaseHTTPRequestHandler]:
+    """Build the request handler. The reader is passed in, so tests can use fake data."""
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "AnimeVerse"
@@ -86,8 +66,8 @@ def make_handler(load_data: LoadData) -> type[BaseHTTPRequestHandler]:
                 self._send(HTTPStatus.NOT_FOUND, "Not found. The page is at /.")
                 return
             try:
-                data = load_data()
-            except psycopg.Error as exc:
+                data = reader.anime_by_franchise()
+            except StoreUnavailable as exc:
                 logger.error("Could not read the database: %s", exc)
                 self._send(
                     HTTPStatus.SERVICE_UNAVAILABLE,
@@ -120,36 +100,20 @@ def make_handler(load_data: LoadData) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Private, read-only local page with the AnimeVerse data.")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port to use (default {DEFAULT_PORT})")
-    parser.add_argument("--open", action="store_true", help="open the page in your default browser")
-    args = parser.parse_args(argv)
-
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
-
-    try:
-        settings = load_database_settings()
-    except ConfigError as exc:
-        logger.error("Configuration problem: %s", exc)
-        return 2
-
+def serve(reader: CatalogReader, port: int = DEFAULT_PORT, open_browser: bool = False) -> int:
+    """Serve the page until Ctrl+C. Returns an exit code: 0 stopped normally, 2 port busy."""
     try:
         # 127.0.0.1 only: the page is not reachable from other devices on the network.
-        server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(load_from_database(settings)))
+        server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(reader))
     except OSError as exc:
         if exc.errno == errno.EADDRINUSE:
-            logger.error(
-                "Port %d is already in use (is another local page running?). Try: --port %d",
-                args.port,
-                args.port + 1,
-            )
+            logger.error("Port %d is already in use (is another local page running?). Try: --port %d", port, port + 1)
             return 2
         raise
 
-    url = f"http://localhost:{args.port}/"
+    url = f"http://localhost:{port}/"
     logger.info("Serving %s (press Ctrl+C to stop)", url)
-    if args.open:
+    if open_browser:
         webbrowser.open(url)
     try:
         server.serve_forever()
@@ -158,7 +122,3 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         server.server_close()
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

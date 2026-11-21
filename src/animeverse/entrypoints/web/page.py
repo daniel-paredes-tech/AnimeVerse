@@ -11,7 +11,7 @@ import re
 
 from animeverse.domain.models import Anime
 
-IMPORT_COMMAND = ".venv/bin/python -m animeverse.import_anime"
+IMPORT_COMMAND = "animeverse import"
 
 STYLE = """
 :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73; --line: #e5e5ea; --head: #f5f5f7; }
@@ -112,15 +112,16 @@ def _value(value: object) -> str:
     return "—" if value is None else str(value)
 
 
+# Codes whose readable form isn't simply "Sentence case" of the code.
+# A new special case is a new line here, not a new `if`.
+_SPECIAL_LABELS = {"TV": "TV", "OVA": "OVA", "ONA": "ONA", "TV_SHORT": "TV short"}
+
+
 def _label(code: str | None) -> str:
-    """AniList codes to readable text: 'NOT_YET_RELEASED' -> 'Not yet released', 'TV' stays 'TV'."""
+    """Source codes to readable text: 'NOT_YET_RELEASED' -> 'Not yet released', 'TV' stays 'TV'."""
     if code is None:
         return "—"
-    if code in ("TV", "OVA", "ONA"):
-        return code
-    if code == "TV_SHORT":
-        return "TV short"
-    return code.replace("_", " ").capitalize()
+    return _SPECIAL_LABELS.get(code) or code.replace("_", " ").capitalize()
 
 
 def _anchor(name: str) -> str:

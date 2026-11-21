@@ -1,4 +1,4 @@
-"""Tests for animeverse.server.
+"""Tests for the local page server (animeverse.entrypoints.web.server).
 
 The tests start a real server on a free local port (port 0 = let the system
 choose) and send real HTTP requests with http.client. No external network.
@@ -10,23 +10,34 @@ import socket
 import threading
 from http.server import ThreadingHTTPServer
 
-import psycopg
 import pytest
 
-from animeverse import server
-from animeverse.domain.models import Anime, Franchise
-from animeverse.infrastructure.postgres.repository import link_anime_to_franchise, upsert_anime, upsert_franchise
+from animeverse.application.ports import StoreUnavailable
+from animeverse.domain.models import Anime
+from animeverse.entrypoints.web import server
 
 SAMPLE_DATA = {"Test Franchise": [Anime(anilist_id=1, title="Test Anime")]}
 
 
+class FakeReader:
+    """A CatalogReader that returns fixed data, or raises the error it was given."""
+
+    def __init__(self, data=None, error=None):
+        self.data, self.error = data, error
+
+    def anime_by_franchise(self):
+        if self.error:
+            raise self.error
+        return self.data
+
+
 @pytest.fixture
 def serve():
-    """Start a server with the given load_data function; returns its port."""
+    """Start a server with the given reader; returns its port."""
     running = []
 
-    def _serve(load_data=lambda: SAMPLE_DATA):
-        httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(load_data))
+    def _serve(reader=None):
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(reader or FakeReader(SAMPLE_DATA)))
         # A short poll interval makes shutdown() fast (the default 0.5 s adds up over many tests).
         threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True).start()
         running.append(httpd)
@@ -119,39 +130,21 @@ def test_requests_for_other_hosts_are_refused(serve, host):
 
 
 def test_database_failure_gives_a_clear_message(serve):
-    def broken():
-        raise psycopg.OperationalError("connection refused")
-
-    response, body = request(serve(broken))
+    response, body = request(serve(FakeReader(error=StoreUnavailable("connection refused"))))
 
     assert response.status == 503
     assert "docker compose up -d" in body
 
 
-# --- Real database ----------------------------------------------------------------
+# --- Serving ----------------------------------------------------------------------
 
 
-def test_load_from_database_reads_committed_data(committing_conn, test_db_settings):
-    franchise_id = upsert_franchise(committing_conn, Franchise("Test Franchise", "test"))
-    anime_id = upsert_anime(committing_conn, Anime(anilist_id=900040, title="Stored Anime")).id
-    link_anime_to_franchise(committing_conn, anime_id, franchise_id)
-    committing_conn.commit()
-
-    data = server.load_from_database(test_db_settings)()
-
-    assert [a.title for a in data["Test Franchise"]] == ["Stored Anime"]
-
-
-# --- Command ----------------------------------------------------------------------
-
-
-def test_main_reports_a_busy_port(monkeypatch, caplog):
-    monkeypatch.setattr(server, "load_database_settings", lambda: None)
+def test_serve_reports_a_busy_port(caplog):
     with socket.socket() as busy:
         busy.bind(("127.0.0.1", 0))
         busy.listen()
         port = busy.getsockname()[1]
 
-        assert server.main(["--port", str(port)]) == 2
+        assert server.serve(FakeReader(SAMPLE_DATA), port=port) == 2
 
     assert "already in use" in caplog.text
