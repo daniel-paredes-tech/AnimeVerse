@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "animeverse"
+version = "0.2.0"
+description = "Imports anime from the AniList API into PostgreSQL."
+readme = "README.md"
+requires-python = ">=3.11"
+# Exact versions, so the project installs the same way on every machine.
+dependencies = [
+    "httpx==0.28.1",          # HTTP client for the AniList API
+    "psycopg[binary]==3.3.9", # PostgreSQL driver; [binary] bundles the client library
+    "python-dotenv==1.2.4",   # reads settings from .env
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.2.0",
+]
+
+[project.scripts]
+animeverse = "animeverse.import_anime:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Tests marked "live" call the real AniList API. They are skipped by default
+# and run only on demand with: pytest -m live
+markers = ["live: calls the real AniList API (opt-in, run with -m live)"]
+addopts = "-m 'not live'"

@@ -1,6 +1,0 @@
-# Packages for development and testing, plus everything needed to run the app.
-# Install with: python -m pip install -r requirements-dev.txt
-
--r requirements.txt
-
-pytest==9.2.0

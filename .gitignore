@@ -14,3 +14,6 @@ __pycache__/
 # Editor and OS files
 *.swp
 .DS_Store
+
+# Packaging metadata created by pip install -e
+*.egg-info/
