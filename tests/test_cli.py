@@ -28,3 +28,10 @@ def test_unreachable_database_gives_exit_code_2(test_db_settings, caplog):
 def test_a_command_is_required():
     with pytest.raises(SystemExit):
         cli.main([])
+
+
+def test_migrate_with_unreachable_database_gives_exit_code_2(test_db_settings, caplog):
+    unreachable = dataclasses.replace(test_db_settings, port=1)
+
+    assert cli.run_migrate(unreachable) == 2
+    assert "Cannot connect to the database" in caplog.text

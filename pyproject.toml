@@ -13,6 +13,8 @@ dependencies = [
     "httpx==0.28.1",          # HTTP client for the AniList API
     "psycopg[binary]==3.3.9", # PostgreSQL driver; [binary] bundles the client library
     "python-dotenv==1.2.4",   # reads settings from .env
+    "alembic==1.20.1",        # numbered, versioned database migrations
+    "sqlalchemy==2.1.8",      # required by Alembic; the application itself writes plain SQL
 ]
 
 [project.optional-dependencies]
@@ -28,6 +30,10 @@ animeverse = "animeverse.entrypoints.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+# Alembic's template for new migration files
+"animeverse.infrastructure.postgres.migrations" = ["script.py.mako"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

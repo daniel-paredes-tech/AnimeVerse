@@ -1,13 +1,27 @@
--- AnimeVerse database schema
---
--- Three tables:
---   franchises        our own list of franchises (AniList has no franchise concept)
---   anime             one row per anime, with the fields imported from AniList
---   anime_franchises  links anime to franchises (many-to-many)
---
--- PostgreSQL runs this file automatically the first time the container starts
--- with an empty data volume (see docker-compose.yml).
+"""Baseline: the three tables, as they were before migrations existed.
 
+Revision ID: 0001
+Revises: (none)
+Created: 2026-11-21
+
+This is the schema that db/schema.sql created. A database that already has
+these tables (created by db/schema.sql) is marked as being at this revision
+with `alembic stamp 0001` instead of running it.
+
+Three tables:
+  franchises        our own list of franchises (AniList has no franchise concept)
+  anime             one row per anime, with the fields imported from AniList
+  anime_franchises  links anime to franchises (many-to-many)
+"""
+
+from alembic import op
+
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+SCHEMA = """
 CREATE TABLE franchises (
     id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name          TEXT NOT NULL UNIQUE,        -- display name, e.g. 'Attack on Titan'
@@ -66,3 +80,13 @@ CREATE TABLE anime_franchises (
 -- index covers the other direction: "which franchises is this anime in?", and
 -- the ON DELETE CASCADE check when an anime is deleted.
 CREATE INDEX anime_franchises_anime_id_idx ON anime_franchises (anime_id);
+"""
+
+
+def upgrade() -> None:
+    op.execute(SCHEMA)
+
+
+def downgrade() -> None:
+    # Development only: AnimeVerse's migrations go forward (see docs/migrations.md).
+    op.execute("DROP TABLE anime_franchises, anime, franchises")

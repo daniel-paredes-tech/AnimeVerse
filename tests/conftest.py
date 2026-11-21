@@ -2,19 +2,18 @@
 
 Tests never touch the main database. They use a separate database named
 "<POSTGRES_DB>_test" in the same container, which is created if missing and
-rebuilt from db/schema.sql at the start of every test run.
+rebuilt by running every migration at the start of every test run, so the
+tests always use exactly the schema that `animeverse migrate` creates.
 """
 
 import dataclasses
-from pathlib import Path
 
 import pytest
 from psycopg import sql
 
 from animeverse.config.settings import load_database_settings
 from animeverse.infrastructure.postgres.connection import connect
-
-SCHEMA_FILE = Path(__file__).resolve().parent.parent / "db" / "schema.sql"
+from animeverse.infrastructure.postgres.migrate import upgrade_to_latest
 
 
 @pytest.fixture(scope="session")
@@ -36,12 +35,12 @@ def test_db_settings():
             # %s parameter. sql.Identifier quotes it safely instead.
             conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(test.dbname)))
 
-    # Drop everything and re-apply the current schema.
+    # Drop everything (including Alembic's version table) and run every migration.
     with connect(test) as conn:
         conn.autocommit = True
         conn.execute("DROP SCHEMA public CASCADE")
         conn.execute("CREATE SCHEMA public")
-        conn.execute(SCHEMA_FILE.read_text())
+    upgrade_to_latest(test)
 
     return test
 

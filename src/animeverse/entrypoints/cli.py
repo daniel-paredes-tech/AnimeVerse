@@ -1,5 +1,6 @@
 """The `animeverse` command, and the composition root.
 
+    animeverse migrate           bring the database schema up to date (run it first)
     animeverse import            import every configured franchise from AniList
     animeverse serve [--open]    private, read-only local page at http://localhost:8000
 
@@ -9,6 +10,7 @@ a database in the cloud) means changing the wiring here, not the use cases.
 
 Exit codes: 0 = success, 1 = at least one franchise failed,
 2 = could not start (missing settings, database unreachable, port busy).
+`migrate` returns 0 or 2.
 """
 
 import argparse
@@ -24,6 +26,7 @@ from animeverse.entrypoints.web.server import DEFAULT_PORT, serve
 from animeverse.infrastructure.anilist.client import AniListClient
 from animeverse.infrastructure.anilist.source import AniListSource
 from animeverse.infrastructure.postgres.connection import connect
+from animeverse.infrastructure.postgres.migrate import upgrade_to_latest
 from animeverse.infrastructure.postgres.store import PostgresCatalogReader, PostgresCatalogStore
 
 logger = logging.getLogger("animeverse")
@@ -34,6 +37,7 @@ EXIT_OK, EXIT_FAILED, EXIT_CANNOT_START = 0, 1, 2
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="animeverse", description="Anime from AniList, stored in PostgreSQL.")
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("migrate", help="bring the database schema up to date")
     commands.add_parser("import", help="import every configured franchise from AniList")
     serve_parser = commands.add_parser("serve", help="private, read-only local page with the stored data")
     serve_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port to use (default {DEFAULT_PORT})")
@@ -48,9 +52,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         logger.error("Configuration problem: %s", exc)
         return EXIT_CANNOT_START
 
+    if args.command == "migrate":
+        return run_migrate(settings)
     if args.command == "import":
         return run_import(settings)
     return serve(PostgresCatalogReader(lambda: connect(settings)), port=args.port, open_browser=args.open)
+
+
+def run_migrate(settings: DatabaseSettings) -> int:
+    try:
+        upgrade_to_latest(settings)
+    except StoreUnavailable as exc:
+        logger.error("Cannot connect to the database (is it running? 'docker compose ps'): %s", exc)
+        return EXIT_CANNOT_START
+    logger.info("Database schema is up to date.")
+    return EXIT_OK
 
 
 def run_import(settings: DatabaseSettings) -> int:

@@ -15,8 +15,6 @@ services:
       # Named volume: the data survives stopping and removing the container.
       # PostgreSQL 18 images keep their data under /var/lib/postgresql.
       - pgdata:/var/lib/postgresql
-      # Scripts in this folder run only when the data volume is empty (first start).
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       # pg_isready reports whether PostgreSQL accepts connections.
       # "$$" passes a literal "$" so the variables are read inside the container.

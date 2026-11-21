@@ -23,7 +23,7 @@ You need [Docker](https://www.docker.com/) with Docker Compose and Python 3.11 o
 # 1. Settings: copy the example and choose a password
 cp .env.example .env             # then edit POSTGRES_PASSWORD (and POSTGRES_PORT if 5432 is busy)
 
-# 2. Start PostgreSQL (db/schema.sql is applied on the first start)
+# 2. Start PostgreSQL
 docker compose up -d
 docker compose ps                # wait for "healthy"
 
@@ -31,7 +31,8 @@ docker compose ps                # wait for "healthy"
 python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
-# 4. Run the import
+# 4. Create or update the tables, then run the import
+.venv/bin/animeverse migrate
 .venv/bin/animeverse import
 ```
 
@@ -52,7 +53,7 @@ Result: 7 of 7 franchises imported.
 
 Run it again and every row shows `New 0`: existing anime are refreshed, nothing is duplicated.
 
-`db/schema.sql` only runs on an empty data volume. After changing it, reset the database with `docker compose down -v` (this deletes the data) and import again.
+The database schema is created and changed only by numbered migrations (Alembic). `animeverse migrate` applies the ones your database doesn't have yet, so it is safe to run every time.
 
 ### Looking at the data
 
@@ -112,7 +113,7 @@ AniList API ──► client ──► parser ──► importer ──► repos
 | `models.py`, `franchises.py`, `config.py` | The data models, the list of franchises, and the settings read from `.env`. |
 | `server.py`, `page.py` | The read-only local page. |
 
-**Schema** ([`db/schema.sql`](db/schema.sql)): `franchises`, `anime` and the link table `anime_franchises` (many-to-many). `anime.anilist_id` is `UNIQUE` and is the key the import upserts on. `CHECK` constraints refuse impossible values such as a score above 10.
+**Schema** (migration [`0001_baseline.py`](src/animeverse/infrastructure/postgres/migrations/versions/0001_baseline.py)): `franchises`, `anime` and the link table `anime_franchises` (many-to-many). `anime.anilist_id` is `UNIQUE` and is the key the import upserts on. `CHECK` constraints refuse impossible values such as a score above 10.
 
 **Idempotency.** Each table has a unique key and each insert says what to do on a conflict:
 
