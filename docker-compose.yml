@@ -1,3 +1,16 @@
+# The settings shared by every application job (migrate, import).
+x-app: &app
+  build: .
+  image: animeverse:local
+  # Only started on request: `docker compose up -d` still starts just the database.
+  profiles: ["app"]
+  env_file: .env
+  environment:
+    # Inside Docker the database is the "db" service on its own port, not
+    # localhost and the port published on this computer.
+    POSTGRES_HOST: db
+    POSTGRES_PORT: "5432"
+
 services:
   db:
     image: postgres:18-alpine
@@ -23,6 +36,22 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  # docker compose run --rm migrate   -> bring the schema up to date
+  migrate:
+    <<: *app
+    command: ["migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # docker compose run --rm import    -> migrate first, then import from AniList
+  import:
+    <<: *app
+    command: ["import"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   pgdata:

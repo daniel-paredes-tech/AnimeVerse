@@ -1,0 +1,17 @@
+# Only pyproject.toml, README.md and src/ are needed to build the image.
+# Everything else stays out, above all .env (credentials).
+.env
+.git
+.venv
+.claude
+CLAUDE.md
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.import_linter_cache
+tests
+docs
+queries
