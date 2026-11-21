@@ -5,11 +5,12 @@ All anime below are made-up test data.
 
 import psycopg
 
-from animeverse import repository
 from animeverse.config.franchises import by_title
 from animeverse.domain.models import Anime
 from animeverse.importer import format_report, import_all, import_franchise
 from animeverse.infrastructure.anilist.client import AniListError
+from animeverse.infrastructure.postgres import repository
+from animeverse.infrastructure.postgres.connection import connect
 
 NARUTO = by_title("Naruto", search="Naruto", match=("naruto",))
 TITAN = by_title("Attack on Titan", search="Attack on Titan", match=("attack on titan", "shingeki no kyojin"))
@@ -81,7 +82,7 @@ def test_importing_twice_creates_nothing_new(committing_conn):
 def test_import_commits_so_other_connections_see_the_data(committing_conn, test_db_settings):
     import_franchise(FakeClient({"Naruto": naruto_results()}), committing_conn, NARUTO)
 
-    with repository.connect(test_db_settings) as other:
+    with connect(test_db_settings) as other:
         assert count(other, "anime") == 2
 
 

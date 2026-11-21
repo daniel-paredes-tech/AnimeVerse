@@ -11,7 +11,7 @@ import psycopg
 import pytest
 
 from animeverse.domain.models import Anime, Franchise
-from animeverse.repository import (
+from animeverse.infrastructure.postgres.repository import (
     link_anime_to_franchise,
     list_anime_by_franchise,
     upsert_anime,

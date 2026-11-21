@@ -12,7 +12,7 @@ import pytest
 from psycopg import sql
 
 from animeverse.config.settings import load_database_settings
-from animeverse.repository import connect
+from animeverse.infrastructure.postgres.connection import connect
 
 SCHEMA_FILE = Path(__file__).resolve().parent.parent / "db" / "schema.sql"
 

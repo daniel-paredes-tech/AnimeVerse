@@ -1,4 +1,4 @@
-"""Repository: all database reads and writes live here.
+"""Repository: all the SQL lives here.
 
 Rules followed by every function in this module:
 
@@ -15,7 +15,6 @@ from typing import Any, NamedTuple
 
 import psycopg
 
-from animeverse.config.settings import DatabaseSettings
 from animeverse.domain.models import Anime, Franchise
 
 
@@ -30,17 +29,6 @@ def _one_row(cursor: psycopg.Cursor[tuple[Any, ...]]) -> tuple[Any, ...]:
     if row is None:  # cannot happen for these queries; fail loudly if it ever does
         raise RuntimeError("expected one row, got none")
     return row
-
-
-def connect(settings: DatabaseSettings) -> psycopg.Connection:
-    """Open a connection. A transaction starts automatically on the first query."""
-    return psycopg.connect(
-        host=settings.host,
-        port=settings.port,
-        user=settings.user,
-        password=settings.password,
-        dbname=settings.dbname,
-    )
 
 
 def upsert_franchise(conn: psycopg.Connection, franchise: Franchise) -> int:

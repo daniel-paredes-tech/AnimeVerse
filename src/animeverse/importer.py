@@ -28,13 +28,13 @@ from dataclasses import dataclass, field
 
 import psycopg
 
-from animeverse import repository
 from animeverse.application.ports import Rejection
 from animeverse.config.franchises import FRANCHISES
 from animeverse.domain.membership import FranchiseDefinition
 from animeverse.domain.models import Anime
 from animeverse.infrastructure.anilist.client import AniListClient, AniListError
 from animeverse.infrastructure.anilist.mapper import parse_anime_list
+from animeverse.infrastructure.postgres import repository
 
 logger = logging.getLogger(__name__)
 

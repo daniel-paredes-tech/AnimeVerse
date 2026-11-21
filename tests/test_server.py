@@ -15,7 +15,7 @@ import pytest
 
 from animeverse import server
 from animeverse.domain.models import Anime, Franchise
-from animeverse.repository import link_anime_to_franchise, upsert_anime, upsert_franchise
+from animeverse.infrastructure.postgres.repository import link_anime_to_franchise, upsert_anime, upsert_franchise
 
 SAMPLE_DATA = {"Test Franchise": [Anime(anilist_id=1, title="Test Anime")]}
 

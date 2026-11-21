@@ -32,8 +32,9 @@ import psycopg
 
 from animeverse.config.settings import ConfigError, DatabaseSettings, load_database_settings
 from animeverse.domain.models import Anime
+from animeverse.infrastructure.postgres.connection import connect
+from animeverse.infrastructure.postgres.repository import list_anime_by_franchise
 from animeverse.page import render_page
-from animeverse.repository import connect, list_anime_by_franchise
 
 logger = logging.getLogger(__name__)
 
