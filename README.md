@@ -36,6 +36,13 @@ python3 -m venv .venv
 .venv/bin/animeverse import
 ```
 
+Or run the application in Docker too, without a Python environment (step 3 not needed):
+
+```bash
+docker compose run --rm migrate
+docker compose run --rm import       # runs migrate first
+```
+
 The import ends with a report:
 
 ```
@@ -53,7 +60,11 @@ Result: 7 of 7 franchises imported.
 
 Run it again and every row shows `New 0`: existing anime are refreshed, nothing is duplicated.
 
-The database schema is created and changed only by numbered migrations (Alembic). `animeverse migrate` applies the ones your database doesn't have yet, so it is safe to run every time.
+Exit codes: `0` success, `1` at least one franchise failed, `2` could not start (missing settings, database unreachable).
+
+The database schema is created and changed only by numbered migrations (Alembic). `animeverse migrate` applies the ones your database doesn't have yet, so it is safe to run every time. See [docs/migrations.md](docs/migrations.md) before changing the schema.
+
+All settings are environment variables, read from `.env` locally; [`.env.example`](.env.example) lists every one.
 
 ### Looking at the data
 
@@ -68,14 +79,23 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 .venv/bin/animeverse serve --open
 ```
 
-### Tests
+### Tests and checks
 
 ```bash
-.venv/bin/python -m pytest            # 142 tests; the database must be running
+.venv/bin/python -m pytest            # 180 tests; the database must be running
 .venv/bin/python -m pytest -m live    # optional: one test against the real AniList API
+.venv/bin/ruff check . && .venv/bin/ruff format --check .   # lint and formatting
+.venv/bin/mypy                        # types (strict)
+.venv/bin/lint-imports                # architecture rules
 ```
 
-The API client tests use a fake AniList and a fake clock, so they need no network and never really wait. The database tests use a separate `<POSTGRES_DB>_test` database, so imported data is never touched.
+GitHub Actions runs all of them on every push, on Python 3.11 and 3.14, and builds the container image.
+
+- **Unit tests** check the import logic with in-memory fakes: no network, no database.
+- **Contract tests** run the same checks against the in-memory store and the real PostgreSQL store, which proves the fake behaves like the real thing.
+- **API client tests** use a fake AniList and a fake clock, so they test timeouts, retries and rate limits without network and without really waiting.
+- **Database tests** use a separate `<POSTGRES_DB>_test` database built by running every migration, so imported data is never touched.
+- **Guard tests** fail if a committed migration is edited, if a migration removes something outside a "contract" migration, or if a layer imports one it shouldn't.
 
 ## What surprised me in the data
 
@@ -83,7 +103,7 @@ Numbers are from an import of 163 anime on 2026-11-16.
 
 **In the API**
 
-- **"Plain text" descriptions contain HTML.** I asked for `description(asHtml: false)` and 134 of 163 descriptions still had tags like `<br>`, `<i>` and `<li>`, plus entities like `&mdash;`. The parser converts them to plain text.
+- **"Plain text" descriptions contain HTML.** I asked for `description(asHtml: false)` and 134 of 163 descriptions still had tags like `<br>`, `<i>` and `<li>`, plus entities like `&mdash;`. The mapper converts them to plain text.
 - **Search is loose.** The top result for "Demon Slayer" was *Onigiri*, an unrelated anime about an online game. So the import keeps a result only if its title contains one of the franchise's match terms.
 - **The result count cannot be trusted.** A search for "naruto" reports 5,000 results in 2,500 pages, but everything fits on one page of 50. AniList's docs confirm that only `hasNextPage` is reliable.
 - **The page size is capped silently.** Asking for 100 per page returns 50 with no error.
@@ -100,18 +120,35 @@ Numbers are from an import of 163 anime on 2026-11-16.
 
 ## How it is built
 
+A hexagonal architecture (ports and adapters): four layers, and dependencies only point inwards, towards the domain.
+
 ```
-AniList API ──► client ──► parser ──► importer ──► repository ──► PostgreSQL
+entrypoints ──► infrastructure ──► application ──► domain
+ (CLI, page)     (AniList,          (use case,       (models,
+                  PostgreSQL)        ports)           rules)
 ```
 
-| Module | What it does |
-|---|---|
-| `anilist_client.py` | Calls the API. 10 s timeout; retries timeouts, network errors and 5xx responses with backoff (1 s, 2 s, 4 s); on `429` waits for `Retry-After` (up to 2 minutes); spaces requests using the `X-RateLimit-Limit` header; follows `hasNextPage`. |
-| `parser.py` | Turns raw API items into `Anime` models. An item without a valid id or title is rejected; an invalid optional value becomes `NULL` with a warning. One bad item never stops the others. |
-| `importer.py` | Runs client → parser → franchise filter → repository for each franchise and builds the report. |
-| `repository.py` | The only module with SQL. Parameterized queries and `INSERT … ON CONFLICT` upserts. |
-| `models.py`, `franchises.py`, `config.py` | The data models, the list of franchises, and the settings read from `.env`. |
-| `server.py`, `page.py` | The read-only local page. |
+```
+src/animeverse/
+  domain/           models.py (Anime, Franchise) · membership.py (which search results belong to a franchise)
+  application/      ports.py (the contracts: AnimeSource, CatalogStore, CatalogReader, and their errors)
+                    import_catalog.py (the import use case)
+  infrastructure/
+    anilist/        client.py (HTTP) · mapper.py (AniList JSON → Anime) · source.py (the AnimeSource port)
+    postgres/       repository.py (all the SQL) · store.py (the store ports) · migrations/ (Alembic)
+  config/           settings.py (environment variables) · franchises.py (what to import)
+  entrypoints/      cli.py (the `animeverse` command; the only place that picks adapters) · web/ (local page)
+```
+
+- **The use case only knows the ports.** It doesn't know AniList or PostgreSQL exist, so it is tested with in-memory fakes, and a new data source, a cloud database or a web page doesn't change it.
+- **Adapters translate errors.** httpx and psycopg errors never leave their adapter; they become `SourceUnavailable`, `RecordRefused` or `StoreUnavailable`.
+- **The rules are enforced**, not just documented: import-linter fails the tests if, for example, the application imports psycopg.
+
+Why it is built this way: [docs/adr/](docs/adr/) has one short record per decision.
+
+**The AniList client.** 10 s timeout; retries timeouts, network errors and 5xx responses with backoff (1 s, 2 s, 4 s); never retries 4xx; on `429` waits for `Retry-After` (up to 2 minutes); spaces requests using the `X-RateLimit-Limit` header; follows `hasNextPage` and refuses partial results.
+
+**The mapper.** Turns raw API items into `Anime` models. An item without a valid id or title is rejected; an invalid optional value becomes `NULL` with a warning. One bad item never stops the others.
 
 **Schema** (migration [`0001_baseline.py`](src/animeverse/infrastructure/postgres/migrations/versions/0001_baseline.py)): `franchises`, `anime` and the link table `anime_franchises` (many-to-many). `anime.anilist_id` is `UNIQUE` and is the key the import upserts on. `CHECK` constraints refuse impossible values such as a score above 10.
 
@@ -125,6 +162,8 @@ AniList API ──► client ──► parser ──► importer ──► repos
 
 **Failures.** Each franchise is one transaction. If AniList or the database fails for a franchise, it is rolled back and the next one still runs. If the database refuses a single anime, only that anime is skipped (a savepoint) and it is listed in the report.
 
+**Migrations.** Numbered Alembic migrations in plain SQL. Committed migrations never change, and anything that removes or renames goes in a separate "contract" migration after the code stops using it (expand/contract), so old and new code can run side by side during a deployment. Details in [docs/migrations.md](docs/migrations.md).
+
 **Dates and time zones.** AniList sends dates as `{year, month, day}` with no time and no time zone, and any part can be missing. A complete date is stored as a `DATE`; an incomplete one is not guessed, but its year is kept in `start_year` / `end_year`. The only timestamps are my own `created_at` and `updated_at`, stored as `TIMESTAMPTZ`.
 
 **Scores.** AniList's `weightedScore` (0–100) is stored as a 0–10 decimal (`85` → `8.50`).
@@ -134,5 +173,6 @@ AniList API ──► client ──► parser ──► importer ──► repos
 - Franchise membership is decided by the title, so it can be wrong both ways: a spin-off with a different name is excluded until a match term is added (the report lists everything excluded), and an unrelated title that contains the term is included (see *Mizuiro no One-Piece* above). AniList's `relations` field would be a better source.
 - Imports never delete. An anime that disappears from AniList, or stops matching, stays in the database.
 - Every run fetches every franchise again: one request each, about 12 seconds in total.
+- There is no public web application and nothing is deployed yet; the code is prepared for both ([ADR 0008](docs/adr/0008-web-and-cloud-postponed.md)).
 
 Anime data comes from the [AniList API](https://docs.anilist.co). This project is not affiliated with AniList.
