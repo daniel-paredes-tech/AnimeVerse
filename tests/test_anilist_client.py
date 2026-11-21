@@ -244,8 +244,19 @@ def test_requests_are_spaced_by_the_rate_limit_header(make_client, fake_time, li
 # --- Live check against the real AniList (opt-in: pytest -m live) -----------
 
 EXPECTED_MEDIA_FIELDS = {
-    "id", "idMal", "title", "format", "episodes", "status", "startDate", "endDate",
-    "weightedScore", "popularity", "description", "coverImage", "siteUrl",
+    "id",
+    "idMal",
+    "title",
+    "format",
+    "episodes",
+    "status",
+    "startDate",
+    "endDate",
+    "weightedScore",
+    "popularity",
+    "description",
+    "coverImage",
+    "siteUrl",
 }
 
 

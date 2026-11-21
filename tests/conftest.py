@@ -30,9 +30,7 @@ def test_db_settings():
     # CREATE DATABASE cannot run inside a transaction, hence autocommit.
     with connect(main) as conn:
         conn.autocommit = True
-        exists = conn.execute(
-            "SELECT 1 FROM pg_database WHERE datname = %s", (test.dbname,)
-        ).fetchone()
+        exists = conn.execute("SELECT 1 FROM pg_database WHERE datname = %s", (test.dbname,)).fetchone()
         if not exists:
             # A database name is an identifier, not a value, so it can't be a
             # %s parameter. sql.Identifier quotes it safely instead.

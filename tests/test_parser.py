@@ -68,7 +68,7 @@ def test_real_description_becomes_plain_text_with_credit(samples):
 
 
 def test_real_description_with_nested_tags_and_line_breaks(samples):
-    synopsis = parse_anime(samples[162561]).synopsis  # NARUTO×NINKU
+    synopsis = parse_anime(samples[162561]).synopsis  # NARUTO×NINKU  # noqa: RUF003 (the real title)
 
     assert "<" not in synopsis
     assert "\n\n\n" not in synopsis

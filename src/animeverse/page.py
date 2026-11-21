@@ -79,7 +79,8 @@ def _franchise_section(name: str, anime_list: list[Anime]) -> str:
     rows = "\n".join(_row(anime) for anime in anime_list)
     return f"""{heading}
 <div class="table-wrap"><table>
-<thead><tr><th>Title</th><th>Type</th><th class="num">Episodes</th><th>Status</th><th class="num">Score</th><th class="num">Year</th></tr></thead>
+<thead><tr><th>Title</th><th>Type</th><th class="num">Episodes</th><th>Status</th>
+<th class="num">Score</th><th class="num">Year</th></tr></thead>
 <tbody>
 {rows}
 </tbody>

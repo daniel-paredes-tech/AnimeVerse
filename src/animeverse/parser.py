@@ -20,7 +20,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypeGuard
 from urllib.parse import urlsplit
 
 from animeverse.models import Anime
@@ -127,11 +127,9 @@ class _OptionalFields:
         self.anilist_id = anilist_id
 
     def warn(self, field: str, value: Any, problem: str) -> None:
-        logger.warning(
-            "AniList anime %d: %s %s (%s); stored as NULL", self.anilist_id, field, problem, _short(value)
-        )
+        logger.warning("AniList anime %d: %s %s (%s); stored as NULL", self.anilist_id, field, problem, _short(value))
 
-    def nested(self, raw: dict, key: str, inner: str) -> Any:
+    def nested(self, raw: dict[str, Any], key: str, inner: str) -> Any:
         container = raw.get(key)
         if container is None:
             return None
@@ -174,14 +172,14 @@ class _OptionalFields:
         if not isinstance(value, dict):
             self.warn(field, value, "is not an object")
             return None
-        parts = (value.get("year"), value.get("month"), value.get("day"))
-        if any(part is None for part in parts):
+        year, month, day = value.get("year"), value.get("month"), value.get("day")
+        if year is None or month is None or day is None:
             return None  # partial dates are common (e.g. unreleased anime)
-        if not all(_is_whole_number(part) for part in parts):
+        if not (_is_whole_number(year) and _is_whole_number(month) and _is_whole_number(day)):
             self.warn(field, value, "has a part that is not a whole number")
             return None
         try:
-            return date(*parts)
+            return date(year, month, day)
         except ValueError:  # e.g. February 30th, or month 13
             self.warn(field, value, "is not a real calendar date")
             return None
@@ -241,7 +239,7 @@ def _clean_text(text: str) -> str:
     return text.replace("\x00", "").strip()
 
 
-def _is_whole_number(value: Any) -> bool:
+def _is_whole_number(value: object) -> TypeGuard[int]:
     # bool is a subclass of int in Python (True == 1), so it must be excluded explicitly.
     return isinstance(value, int) and not isinstance(value, bool)
 

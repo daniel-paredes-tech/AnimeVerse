@@ -81,9 +81,7 @@ def test_upsert_anime_stores_every_field(conn):
 def test_upsert_anime_with_only_required_fields_stores_nulls(conn):
     anime_id = upsert_anime(conn, Anime(anilist_id=900002, title="Minimal Anime")).id
 
-    row = conn.execute(
-        "SELECT mal_id, episodes, score, aired_from FROM anime WHERE id = %s", (anime_id,)
-    ).fetchone()
+    row = conn.execute("SELECT mal_id, episodes, score, aired_from FROM anime WHERE id = %s", (anime_id,)).fetchone()
     assert row == (None, None, None, None)
 
 

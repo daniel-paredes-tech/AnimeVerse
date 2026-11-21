@@ -25,6 +25,7 @@ import webbrowser
 from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Any
 from urllib.parse import urlsplit
 
 import psycopg
@@ -112,7 +113,7 @@ def make_handler(load_data: LoadData) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(payload)
 
-        def log_message(self, format: str, *args) -> None:
+        def log_message(self, format: str, *args: Any) -> None:
             logger.info("%s %s", self.address_string(), format % args)
 
     return Handler
@@ -139,7 +140,8 @@ def main(argv: list[str] | None = None) -> int:
         if exc.errno == errno.EADDRINUSE:
             logger.error(
                 "Port %d is already in use (is another local page running?). Try: --port %d",
-                args.port, args.port + 1,
+                args.port,
+                args.port + 1,
             )
             return 2
         raise

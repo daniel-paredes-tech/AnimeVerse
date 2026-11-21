@@ -132,10 +132,12 @@ def test_import_commits_so_other_connections_see_the_data(committing_conn, test_
 
 
 def test_anilist_failure_for_one_franchise_does_not_stop_the_others(committing_conn):
-    client = FakeClient({
-        "Naruto": AniListError("AniList request failed after 4 attempts: server error (HTTP 503)", status=503),
-        "Attack on Titan": [raw(900010, "Shingeki no Kyojin", "Attack on Titan")],
-    })
+    client = FakeClient(
+        {
+            "Naruto": AniListError("AniList request failed after 4 attempts: server error (HTTP 503)", status=503),
+            "Attack on Titan": [raw(900010, "Shingeki no Kyojin", "Attack on Titan")],
+        }
+    )
 
     reports = import_all(client, committing_conn, franchises=[NARUTO, TITAN])
 
@@ -146,10 +148,12 @@ def test_anilist_failure_for_one_franchise_does_not_stop_the_others(committing_c
 
 
 def test_database_failure_rolls_back_only_that_franchise(committing_conn, monkeypatch):
-    client = FakeClient({
-        "Naruto": naruto_results(),
-        "Attack on Titan": [raw(900010, "Shingeki no Kyojin", "Attack on Titan")],
-    })
+    client = FakeClient(
+        {
+            "Naruto": naruto_results(),
+            "Attack on Titan": [raw(900010, "Shingeki no Kyojin", "Attack on Titan")],
+        }
+    )
     import_franchise(client, committing_conn, NARUTO)  # succeeds and commits
 
     def broken_link(conn, anime_id, franchise_id):

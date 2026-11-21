@@ -153,7 +153,11 @@ def import_all(
         else:
             logger.info(
                 "%s: %d new, %d refreshed, %d excluded, %d rejected, %d not saved",
-                config.name, report.new, report.refreshed, len(report.excluded), len(report.rejected),
+                config.name,
+                report.new,
+                report.refreshed,
+                len(report.excluded),
+                len(report.rejected),
                 len(report.unsaved),
             )
         reports.append(report)
@@ -171,7 +175,10 @@ def _fail(report: FranchiseReport, error: str) -> FranchiseReport:
 
 def format_report(reports: list[FranchiseReport]) -> str:
     """A plain-text summary of an import run."""
-    header = f"{'Franchise':<18}{'Status':<8}{'Fetched':>8}{'Rejected':>10}{'Excluded':>10}{'New':>6}{'Refreshed':>11}{'New links':>11}"
+    header = (
+        f"{'Franchise':<18}{'Status':<8}{'Fetched':>8}{'Rejected':>10}{'Excluded':>10}"
+        f"{'New':>6}{'Refreshed':>11}{'New links':>11}"
+    )
     lines = [header, "-" * len(header)]
     for r in reports:
         status = "FAILED" if r.failed else "ok"
@@ -184,10 +191,12 @@ def format_report(reports: list[FranchiseReport]) -> str:
     rejected = [f"{r.name}: position {x.position} (id={x.anilist_id}): {x.reason}" for r in reports for x in r.rejected]
     unsaved = [f"{r.name}: {u.title} ({u.anilist_id}): {u.reason}" for r in reports for u in r.unsaved]
     failures = [f"{r.name}: {r.error}" for r in reports if r.failed]
-    for title, items in (("Excluded (not part of the franchise)", excluded),
-                         ("Rejected (malformed data)", rejected),
-                         ("Not saved (refused by the database)", unsaved),
-                         ("Failures", failures)):
+    for title, items in (
+        ("Excluded (not part of the franchise)", excluded),
+        ("Rejected (malformed data)", rejected),
+        ("Not saved (refused by the database)", unsaved),
+        ("Failures", failures),
+    ):
         if items:
             lines += ["", f"{title}:"] + [f"  - {item}" for item in items]
 

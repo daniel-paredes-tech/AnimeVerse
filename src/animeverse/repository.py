@@ -11,7 +11,7 @@ Rules followed by every function in this module:
 """
 
 from dataclasses import asdict
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import psycopg
 
@@ -22,6 +22,14 @@ from animeverse.models import Anime, Franchise
 class SavedAnime(NamedTuple):
     id: int  # the anime's internal id
     created: bool  # True if the row was inserted, False if an existing row was refreshed
+
+
+def _one_row(cursor: psycopg.Cursor[tuple[Any, ...]]) -> tuple[Any, ...]:
+    """The single row a RETURNING or count query always produces."""
+    row = cursor.fetchone()
+    if row is None:  # cannot happen for these queries; fail loudly if it ever does
+        raise RuntimeError("expected one row, got none")
+    return row
 
 
 def connect(settings: DatabaseSettings) -> psycopg.Connection:
@@ -49,8 +57,9 @@ def upsert_franchise(conn: psycopg.Connection, franchise: Franchise) -> int:
         RETURNING id
         """,
         asdict(franchise),
-    ).fetchone()
-    return row[0]
+    )
+    franchise_id: int = _one_row(row)[0]
+    return franchise_id
 
 
 def upsert_anime(conn: psycopg.Connection, anime: Anime) -> SavedAnime:
@@ -99,8 +108,9 @@ def upsert_anime(conn: psycopg.Connection, anime: Anime) -> SavedAnime:
         RETURNING id, (xmax = 0) AS created
         """,
         asdict(anime),
-    ).fetchone()
-    return SavedAnime(id=row[0], created=row[1])
+    )
+    anime_id, created = _one_row(row)
+    return SavedAnime(id=anime_id, created=created)
 
 
 def list_anime_by_franchise(conn: psycopg.Connection) -> dict[str, list[Anime]]:

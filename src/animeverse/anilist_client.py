@@ -162,7 +162,7 @@ class AniListClient:
     def __enter__(self) -> "AniListClient":
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, *exc_info: object) -> None:
         self.close()
 
     # --- One HTTP request, with pacing and retries ------------------------------
@@ -211,7 +211,10 @@ class AniListClient:
             retries_done += 1
             logger.warning(
                 "AniList %s; retrying in %.1f s (retry %d of %d)",
-                problem, wait, retries_done, self._max_retries,
+                problem,
+                wait,
+                retries_done,
+                self._max_retries,
             )
 
     def _wait_before_request(self, minimum_wait: float) -> None:
