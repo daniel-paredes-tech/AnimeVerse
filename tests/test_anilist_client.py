@@ -10,7 +10,7 @@ import json
 import httpx
 import pytest
 
-from animeverse.anilist_client import API_URL, PER_PAGE, AniListClient, AniListError
+from animeverse.infrastructure.anilist.client import API_URL, PER_PAGE, AniListClient, AniListError
 
 
 class FakeTime:

@@ -6,10 +6,10 @@ All anime below are made-up test data.
 import psycopg
 
 from animeverse import repository
-from animeverse.anilist_client import AniListError
 from animeverse.config.franchises import by_title
 from animeverse.domain.models import Anime
 from animeverse.importer import format_report, import_all, import_franchise
+from animeverse.infrastructure.anilist.client import AniListError
 
 NARUTO = by_title("Naruto", search="Naruto", match=("naruto",))
 TITAN = by_title("Attack on Titan", search="Attack on Titan", match=("attack on titan", "shingeki no kyojin"))

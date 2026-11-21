@@ -29,11 +29,12 @@ from dataclasses import dataclass, field
 import psycopg
 
 from animeverse import repository
-from animeverse.anilist_client import AniListClient, AniListError
+from animeverse.application.ports import Rejection
 from animeverse.config.franchises import FRANCHISES
 from animeverse.domain.membership import FranchiseDefinition
 from animeverse.domain.models import Anime
-from animeverse.parser import Rejection, parse_anime_list
+from animeverse.infrastructure.anilist.client import AniListClient, AniListError
+from animeverse.infrastructure.anilist.mapper import parse_anime_list
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ def import_franchise(
 
     # 3. Keep only the anime that belong to this franchise.
     members: list[Anime] = []
-    for anime in parsed.valid:
+    for anime in parsed.anime:
         if definition.rule.includes(anime):
             members.append(anime)
         else:
@@ -174,7 +175,7 @@ def format_report(reports: list[FranchiseReport]) -> str:
         )
 
     excluded = [f"{r.name}: {e.title} ({e.anilist_id})" for r in reports for e in r.excluded]
-    rejected = [f"{r.name}: position {x.position} (id={x.anilist_id}): {x.reason}" for r in reports for x in r.rejected]
+    rejected = [f"{r.name}: position {x.position} (id={x.source_id}): {x.reason}" for r in reports for x in r.rejected]
     unsaved = [f"{r.name}: {u.title} ({u.anilist_id}): {u.reason}" for r in reports for u in r.unsaved]
     failures = [f"{r.name}: {r.error}" for r in reports if r.failed]
     for title, items in (

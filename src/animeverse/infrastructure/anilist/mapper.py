@@ -1,6 +1,6 @@
-"""Parser: turns raw AniList media dicts into validated Anime models.
+"""Mapper: turns raw AniList media dicts into validated Anime models.
 
-The parser is the gatekeeper for untrusted API data. Everything after it
+The mapper is the gatekeeper for untrusted API data. Everything after it
 (the repository, the database) can rely on clean, correctly typed values.
 
 Policy:
@@ -17,12 +17,12 @@ import html
 import logging
 import math
 import re
-from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from typing import Any, TypeGuard
 from urllib.parse import urlsplit
 
+from animeverse.application.ports import Rejection, SearchResult
 from animeverse.domain.models import Anime
 
 logger = logging.getLogger(__name__)
@@ -36,23 +36,10 @@ class InvalidAnimeError(Exception):
     """Raised when an item cannot become an Anime (a required field is bad)."""
 
 
-@dataclass(frozen=True)
-class Rejection:
-    position: int  # index of the item in the list that was parsed
-    anilist_id: int | None  # known only if the item had a valid id
-    reason: str
-
-
-@dataclass(frozen=True)
-class ParseResult:
-    valid: list[Anime]
-    rejected: list[Rejection]
-
-
 # --- Public interface ----------------------------------------------------------
 
 
-def parse_anime_list(raw_items: list[Any]) -> ParseResult:
+def parse_anime_list(raw_items: list[Any]) -> SearchResult:
     """Parse many items. Bad items are collected as rejections, never raised."""
     valid: list[Anime] = []
     rejected: list[Rejection] = []
@@ -64,7 +51,7 @@ def parse_anime_list(raw_items: list[Any]) -> ParseResult:
             anilist_id = raw_id if _is_whole_number(raw_id) else None
             rejected.append(Rejection(position, anilist_id, str(exc)))
             logger.warning("Rejected AniList item at position %d (id=%s): %s", position, anilist_id, exc)
-    return ParseResult(valid, rejected)
+    return SearchResult(anime=valid, rejected=rejected)
 
 
 def parse_anime(raw: Any) -> Anime:

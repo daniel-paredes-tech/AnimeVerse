@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from animeverse.parser import InvalidAnimeError, parse_anime, parse_anime_list
+from animeverse.infrastructure.anilist.mapper import InvalidAnimeError, parse_anime, parse_anime_list
 
 SAMPLES_FILE = Path(__file__).parent / "fixtures" / "anilist_samples.json"
 
@@ -38,7 +38,7 @@ def minimal(**overrides):
 def test_all_real_samples_parse_without_rejections(samples):
     result = parse_anime_list(list(samples.values()))
 
-    assert len(result.valid) == 5
+    assert len(result.anime) == 5
     assert result.rejected == []
 
 
@@ -247,8 +247,8 @@ def test_list_with_bad_items_keeps_good_ones_and_reports_rejections(samples, cap
     with caplog.at_level(logging.WARNING):
         result = parse_anime_list(items)
 
-    assert [a.anilist_id for a in result.valid] == [20, 900001]
-    assert [(r.position, r.anilist_id) for r in result.rejected] == [(1, None), (2, 900002)]
+    assert [a.anilist_id for a in result.anime] == [20, 900001]
+    assert [(r.position, r.source_id) for r in result.rejected] == [(1, None), (2, 900002)]
     assert "title.romaji" in result.rejected[1].reason
     assert len(caplog.records) == 2  # each rejection is logged
 
@@ -256,4 +256,4 @@ def test_list_with_bad_items_keeps_good_ones_and_reports_rejections(samples, cap
 def test_empty_list_gives_empty_result():
     result = parse_anime_list([])
 
-    assert result.valid == [] and result.rejected == []
+    assert result.anime == [] and result.rejected == []

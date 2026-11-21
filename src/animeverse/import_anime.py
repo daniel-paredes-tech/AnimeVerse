@@ -13,9 +13,9 @@ import sys
 
 import psycopg
 
-from animeverse.anilist_client import AniListClient
 from animeverse.config.settings import ConfigError, load_database_settings
 from animeverse.importer import format_report, import_all
+from animeverse.infrastructure.anilist.client import AniListClient
 from animeverse.repository import connect
 
 logger = logging.getLogger("animeverse.import_anime")
