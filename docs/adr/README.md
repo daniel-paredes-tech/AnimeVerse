@@ -13,7 +13,10 @@ and the old one is marked "Superseded".
 | [0005](0005-alembic-migrations-expand-contract.md) | Alembic migrations with expand/contract | Accepted |
 | [0006](0006-franchise-membership-by-title.md) | Franchise membership decided by title | Accepted |
 | [0007](0007-idempotent-import-never-delete.md) | Idempotent import that never deletes | Accepted |
-| [0008](0008-web-and-cloud-postponed.md) | Web application and cloud deployment postponed | Accepted |
+| [0008](0008-web-and-cloud-postponed.md) | Web application and cloud deployment postponed | Superseded by 0009 |
+| [0009](0009-api-and-web-app-now.md) | API and web application now; cloud still postponed | Accepted |
+| [0010](0010-contract-first-openapi.md) | Contract-first OpenAPI, Problem Details errors, contract tests | Accepted |
+| [0011](0011-watchlist-in-its-own-table.md) | The watchlist: user data in its own table | Accepted |
 
 Template for a new one:
 

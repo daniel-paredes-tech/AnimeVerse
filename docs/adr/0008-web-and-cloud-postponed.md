@@ -1,6 +1,6 @@
 # 0008. Web application and cloud deployment postponed
 
-- Status: Accepted
+- Status: Superseded by 0009 (web part; the cloud part still holds)
 - Date: 2026-11-21
 
 ## Context
