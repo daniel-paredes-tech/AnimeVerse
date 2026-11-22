@@ -1,4 +1,7 @@
-"""Repository: all the SQL lives here.
+"""Repository: the importer's SQL (franchises, anime, links) and the old page's read.
+
+The API's SQL is in its sibling modules: catalog_queries.py (browsing) and
+watchlist_repository.py (the user's watchlist). They follow the same rules.
 
 Rules followed by every function in this module:
 

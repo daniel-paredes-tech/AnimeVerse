@@ -1,4 +1,4 @@
-"""Contract tests for CatalogQuery and WatchlistStore: the same checks for every implementation.
+"""Contract tests for CatalogQuery and WatchlistStore: the same checks against the in-memory and PostgreSQL versions.
 
 The use case tests rely on the in-memory store. These tests pin down what
 the ports promise (filters, sort order, pages, watchlist saves), so the
@@ -14,6 +14,12 @@ import pytest
 from animeverse.application.ports import AnimeFilters, PageRequest, RecordRefused, Sort, SortField
 from animeverse.domain.models import Anime, Franchise
 from animeverse.domain.watchlist import WatchlistEntry, WatchStatus
+from animeverse.infrastructure.postgres.connection import connect
+from animeverse.infrastructure.postgres.store import (
+    PostgresCatalogQuery,
+    PostgresCatalogStore,
+    PostgresWatchlistStore,
+)
 from tests.fakes import InMemoryCatalogStore
 
 ALPHA = Anime(
@@ -67,11 +73,25 @@ class Catalog:
         )
 
 
-@pytest.fixture(params=["in-memory"])
+def _implementation(request) -> Catalog:
+    if request.param == "in-memory":
+        store = InMemoryCatalogStore()
+        return Catalog(store, store, store)
+    # PostgreSQL: committing_conn empties every table (and restarts the ids) around the test.
+    conn = request.getfixturevalue("committing_conn")
+    settings = request.getfixturevalue("test_db_settings")
+    return Catalog(
+        PostgresCatalogStore(conn),
+        PostgresCatalogQuery(lambda: connect(settings)),
+        PostgresWatchlistStore(lambda: connect(settings)),
+    )
+
+
+@pytest.fixture(params=["in-memory", "postgres"])
 def catalog(request) -> Catalog:
     """An implementation filled with ALPHA..DELTA: Naruto (Alpha, beta), Attack on Titan (beta, Gamma)."""
-    store = InMemoryCatalogStore()
-    catalog = Catalog(store, store, store)
+    catalog = _implementation(request)
+    store = catalog.store
     with store.session() as session:
         naruto = session.save_franchise(Franchise("Naruto", "Naruto"))
         titan = session.save_franchise(Franchise("Attack on Titan", "Attack on Titan"))
@@ -131,10 +151,17 @@ def test_sort_puts_missing_values_last_and_breaks_ties_by_id(catalog, sort, expe
         pytest.param(AnimeFilters(min_score=Decimal("7.5")), ["beta", "Delta", "Alpha"], id="min score inclusive"),
         pytest.param(AnimeFilters(franchise_id=1, year_from=2005), ["beta", "Delta"], id="filters combine with AND"),
         pytest.param(AnimeFilters(text="zzz"), [], id="nothing matches"),
+        pytest.param(AnimeFilters(text="'; DROP TABLE anime; --"), [], id="SQL in the text is only text"),
     ],
 )
 def test_filters(catalog, filters, expected):
     assert catalog.titles(filters, Sort(SortField.POPULARITY, descending=True)) == expected
+
+
+def test_sql_in_a_search_is_never_run(catalog):
+    catalog.titles(AnimeFilters(text="'; DROP TABLE anime; --"))
+
+    assert len(catalog.titles()) == 4  # the table is still there, with every anime
 
 
 def test_franchise_ids_follow_creation_order(catalog):

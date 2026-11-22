@@ -1,7 +1,11 @@
-"""The CatalogStore and CatalogReader ports, implemented with PostgreSQL.
+"""The storage ports, implemented with PostgreSQL.
 
-The SQL itself is in repository.py; this module adds the unit of work and
-translates psycopg's errors into the errors the ports declare:
+    CatalogStore, CatalogReader  (the importer and the old page)   SQL in repository.py
+    CatalogQuery                 (browsing, for the API)            SQL in catalog_queries.py
+    WatchlistStore               (the user's watchlist)             SQL in watchlist_repository.py
+
+This module adds the units of work and translates psycopg's errors into the
+errors the ports declare:
 
 - a value PostgreSQL cannot store, or a broken constraint (DataError,
   IntegrityError)                                    -> RecordRefused
@@ -13,9 +17,21 @@ from contextlib import contextmanager
 
 import psycopg
 
-from animeverse.application.ports import RecordRefused, SavedMember, StoreUnavailable
+from animeverse.application.ports import (
+    AnimeFilters,
+    CatalogAnime,
+    FranchiseCount,
+    Page,
+    PageRequest,
+    RecordRefused,
+    SavedEntry,
+    SavedMember,
+    Sort,
+    StoreUnavailable,
+)
 from animeverse.domain.models import Anime, Franchise
-from animeverse.infrastructure.postgres import repository
+from animeverse.domain.watchlist import WatchlistEntry
+from animeverse.infrastructure.postgres import catalog_queries, repository, watchlist_repository
 
 
 class PostgresCatalogStore:
@@ -68,6 +84,64 @@ class PostgresCatalogReader:
         try:
             with self._connect() as conn:
                 return repository.list_anime_by_franchise(conn)
+        except psycopg.Error as exc:
+            raise StoreUnavailable(_first_line(exc)) from exc
+
+
+class PostgresCatalogQuery:
+    """CatalogQuery with a fresh connection per call (fine for a local, single-user API).
+
+    Under real load a connection pool would avoid reconnecting each time.
+    """
+
+    def __init__(self, connect: Callable[[], psycopg.Connection]) -> None:
+        self._connect = connect
+
+    def list_anime(self, filters: AnimeFilters, sort: Sort, page: PageRequest) -> Page[CatalogAnime]:
+        try:
+            with self._connect() as conn:
+                return catalog_queries.list_anime(conn, filters, sort, page)
+        except psycopg.Error as exc:
+            raise StoreUnavailable(_first_line(exc)) from exc
+
+    def get_anime(self, anime_id: int) -> CatalogAnime | None:
+        try:
+            with self._connect() as conn:
+                return catalog_queries.get_anime(conn, anime_id)
+        except psycopg.Error as exc:
+            raise StoreUnavailable(_first_line(exc)) from exc
+
+    def list_franchises(self) -> list[FranchiseCount]:
+        try:
+            with self._connect() as conn:
+                return catalog_queries.list_franchises(conn)
+        except psycopg.Error as exc:
+            raise StoreUnavailable(_first_line(exc)) from exc
+
+
+class PostgresWatchlistStore:
+    """WatchlistStore: each call is one transaction on a fresh connection.
+
+    `with conn:` commits when the block ends normally and rolls back if it raises.
+    """
+
+    def __init__(self, connect: Callable[[], psycopg.Connection]) -> None:
+        self._connect = connect
+
+    def save(self, anime_id: int, entry: WatchlistEntry) -> SavedEntry:
+        try:
+            with self._connect() as conn:
+                return watchlist_repository.upsert_entry(conn, anime_id, entry)
+        except (psycopg.DataError, psycopg.IntegrityError) as exc:
+            # A CHECK constraint, or a missing anime (foreign key).
+            raise RecordRefused(_first_line(exc)) from exc
+        except psycopg.Error as exc:
+            raise StoreUnavailable(_first_line(exc)) from exc
+
+    def delete(self, anime_id: int) -> bool:
+        try:
+            with self._connect() as conn:
+                return watchlist_repository.delete_entry(conn, anime_id)
         except psycopg.Error as exc:
             raise StoreUnavailable(_first_line(exc)) from exc
 
