@@ -1,0 +1,6 @@
+# Redocly CLI configuration: the lint rules for openapi.yaml (ADR 0010).
+#   npx @redocly/cli lint openapi.yaml
+# "recommended-strict" is Redocly's standard rule set for well-designed APIs, with
+# every warning raised to an error, so a new warning fails the lint (and CI).
+extends:
+  - recommended-strict

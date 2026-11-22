@@ -41,11 +41,11 @@ All paths are under `/v1`. Field names are snake_case, matching the DB and Pytho
 | `GET /v1/franchises` | Franchises + anime count (filter options, dashboard) | 200 | 503 |
 | `GET /v1/openapi.yaml` | The contract itself | 200 | none |
 
-- **List query params:** `q` (title, case-insensitive, matches romaji/English/native), `franchise` (id), `status`, `format`, `year_from`/`year_to` (start_year), `min_score`, `watchlist_status` (or `on_watchlist=true`), `sort` ∈ `popularity|score|start_year|title`, each optionally prefixed with `-` for descending (default `-popularity`), `page` ≥1, `page_size` 1–100 (default 24). Unknown values return 400.
+- **List query params:** `q` (title, case-insensitive, matches romaji/English/native), `franchise` (id), `status`, `format`, `year_from`/`year_to` (start_year), `min_score`, `watchlist_status` (or `on_watchlist=true`), `sort` ∈ `popularity|score|start_year|title`, each optionally prefixed with `-` for descending (default `-popularity`), `page` ≥1, `page_size` 1–100 (default 24). Unknown values **and unknown parameters** return 400, so a typo in a filter name is reported instead of silently ignored.
 - **List response:** `{ "data": [AnimeSummary], "meta": {page, page_size, total_items, total_pages}, "links": {self, next|null, prev|null} }`. AnimeSummary leaves out `synopsis`; AnimeDetail adds `synopsis`, `franchises[]` and `watchlist_entry|null`.
 - **Write body:** `{status: planning|watching|completed|paused|dropped, episodes_watched: int ≥0, rating: int 1–10 | null, notes: string ≤1000 | null}`. `additionalProperties: false`.
 - **Validation rules (422):** `episodes_watched ≤ anime.episodes` when episodes is known. `completed` requires `episodes_watched == episodes` when known. `planning` requires `episodes_watched == 0`. The rules that compare fields live in the domain (see below), and the spec documents them in `description` plus an example.
-- **Error shape: RFC 9457 Problem Details** (`application/problem+json`): `type` (URI under `https://animeverse.local/problems/…`), `title`, `status`, `detail`, `instance`, plus `errors: [{field, code, message}]` for 400/422. Status codes:
+- **Error shape: RFC 9457 Problem Details** (`application/problem+json`): `type` (a URN, `urn:animeverse:problem:<kind>`: we own no domain to point a URL at, and RFC 9457 allows non-resolvable URIs), `title`, `status`, `detail`, `instance`, plus `errors: [{field, code, message}]` for 400/422. Status codes:
   - 400: malformed JSON or bad query/path parameters (syntax).
   - 422: the body is well-formed but breaks the rules (semantics).
   - 404: unknown anime, and also unknown routes.

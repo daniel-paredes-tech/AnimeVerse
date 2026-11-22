@@ -1,0 +1,955 @@
+openapi: 3.1.0
+
+# The contract of the AnimeVerse API (ADR 0010).
+#
+# This file is written by hand and changed BEFORE the code. The server is tested
+# against it (Schemathesis + route parity) and the web UI's types are generated
+# from it. Lint it with:  npx @redocly/cli lint openapi.yaml
+
+info:
+  title: AnimeVerse API
+  version: 1.0.0
+  summary: Anime from several franchises, imported from AniList, plus your personal watchlist.
+  description: |
+    A read API over the anime that AnimeVerse imports from [AniList](https://anilist.co),
+    grouped by franchise, and a small write API for your own watchlist.
+
+    **Conventions**
+
+    - Every path starts with the major version (`/v1`). Additive changes (new optional
+      fields, new endpoints) stay in v1; a breaking change would be `/v2`.
+    - Field names are `snake_case`.
+    - Unknown query parameters are rejected with `400`, so a typo in a filter name is
+      reported instead of silently returning unfiltered results.
+    - Every documented response field is always present. A field that may have no value is
+      marked nullable and is `null` when the value is unknown. It is never left out.
+    - Errors use RFC 9457 Problem Details (`application/problem+json`), always with the same
+      shape: see the `Problem` schema.
+    - Imported anime are read-only: they are refreshed by the import job, never by this API.
+      The only data you can write is your watchlist.
+
+    **Running locally:** the API listens on 127.0.0.1 only and has no authentication. It is
+    a single-user application for your own computer.
+  license:
+    name: MIT
+    identifier: MIT
+  contact:
+    name: AnimeVerse
+    url: https://github.com/daniel-paredes-tech/AnimeVerse
+
+servers:
+  # Relative: the API serves this document itself, so "/" is whichever server it came
+  # from (normally http://localhost:8000, started with `animeverse serve`).
+  - url: /
+    description: The server that serves this document
+
+# No authentication: the server only accepts connections from this computer.
+security: []
+
+tags:
+  - name: Anime
+    description: The imported anime catalogue. Read-only.
+  - name: Franchises
+    description: The franchises AnimeVerse imports (Naruto, One Piece...). Read-only.
+  - name: Watchlist
+    description: Your personal tracking of an anime. The only writable data.
+  - name: Meta
+    description: Information about the API itself.
+
+paths:
+  /v1/anime:
+    get:
+      operationId: listAnime
+      tags: [Anime]
+      summary: List anime
+      description: |
+        A page of anime matching every filter given (filters are combined with AND).
+        Without filters, all anime, most popular first.
+
+        A page number past the last page is not an error: it returns an empty `data`
+        list, and `meta.total_items` still tells how many anime match.
+      parameters:
+        - $ref: '#/components/parameters/Query'
+        - $ref: '#/components/parameters/FranchiseFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/FormatFilter'
+        - $ref: '#/components/parameters/YearFrom'
+        - $ref: '#/components/parameters/YearTo'
+        - $ref: '#/components/parameters/MinScore'
+        - $ref: '#/components/parameters/OnWatchlist'
+        - $ref: '#/components/parameters/WatchlistStatusFilter'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: One page of anime.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimePage'
+              examples:
+                firstPage:
+                  $ref: '#/components/examples/AnimePage'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/anime/{anime_id}:
+    parameters:
+      - $ref: '#/components/parameters/AnimeId'
+    get:
+      operationId: getAnime
+      tags: [Anime]
+      summary: Get one anime
+      description: Every stored field of one anime, its franchises and your watchlist entry.
+      responses:
+        '200':
+          description: The anime.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimeDetail'
+              examples:
+                naruto:
+                  $ref: '#/components/examples/AnimeDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/anime/{anime_id}/watchlist-entry:
+    parameters:
+      - $ref: '#/components/parameters/AnimeId'
+    put:
+      operationId: putWatchlistEntry
+      tags: [Watchlist]
+      summary: Create or replace your watchlist entry
+      description: |
+        Sets your watchlist entry for this anime, replacing any previous one entirely
+        (`PUT` semantics: sending the same body twice leaves the same result).
+
+        Besides the per-field limits in the schema, the body must follow these rules,
+        checked against the anime (`422` with one item in `errors` per broken rule):
+
+        | `errors[].code` | Rule |
+        |---|---|
+        | `exceeds_episodes` | `episodes_watched` can't be more than the anime's `episodes` (when known). |
+        | `completed_requires_all_episodes` | `status: completed` needs `episodes_watched` equal to `episodes` (when known). |
+        | `planning_requires_zero_episodes` | `status: planning` needs `episodes_watched` to be 0. |
+
+        Blank `notes` (empty or only spaces) are stored as `null`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchlistEntryInput'
+            examples:
+              watching:
+                summary: Watching, halfway through
+                value:
+                  status: watching
+                  episodes_watched: 110
+                  rating: 9
+                  notes: Rewatch the Chunin exam arc.
+      responses:
+        '200':
+          description: An existing entry was replaced.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistEntry'
+        '201':
+          description: The entry was created.
+          headers:
+            Location:
+              description: The URL of the entry (the same URL as this request).
+              schema:
+                type: string
+                format: uri-reference
+                examples: [/v1/anime/1/watchlist-entry]
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistEntry'
+              examples:
+                created:
+                  $ref: '#/components/examples/WatchlistEntry'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteWatchlistEntry
+      tags: [Watchlist]
+      summary: Remove your watchlist entry
+      description: |
+        Removes the entry. `404` if the anime does not exist or has no entry; the
+        `detail` says which.
+      responses:
+        '204':
+          description: The entry was removed.
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/franchises:
+    get:
+      operationId: listFranchises
+      tags: [Franchises]
+      summary: List franchises
+      description: Every franchise, alphabetically, with how many anime it has. Not paginated (a handful of items).
+      responses:
+        '200':
+          description: All franchises.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FranchiseList'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/openapi.yaml:
+    get:
+      operationId: getOpenApiDocument
+      tags: [Meta]
+      summary: Get this contract
+      description: This OpenAPI document, so clients can generate code from the running API.
+      responses:
+        '200':
+          description: The OpenAPI document.
+          content:
+            application/yaml:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+
+components:
+  parameters:
+    AnimeId:
+      name: anime_id
+      in: path
+      required: true
+      description: AnimeVerse's id of the anime (the `id` field, not `anilist_id`).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 2147483647
+      example: 1
+    Query:
+      name: q
+      in: query
+      description: Text to find in any title (romaji, English or Japanese), ignoring case.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+      example: shippuden
+    FranchiseFilter:
+      name: franchise
+      in: query
+      description: Only anime of this franchise (its `id` from `GET /v1/franchises`).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 2147483647
+      example: 1
+    StatusFilter:
+      name: status
+      in: query
+      description: Only anime with this release status.
+      schema:
+        $ref: '#/components/schemas/ReleaseStatus'
+    FormatFilter:
+      name: format
+      in: query
+      description: Only anime in this format.
+      schema:
+        $ref: '#/components/schemas/AnimeFormat'
+    YearFrom:
+      name: year_from
+      in: query
+      description: Only anime that started in this year or later (anime without a known start year are left out).
+      schema:
+        type: integer
+        minimum: 1900
+        maximum: 2100
+      example: 2000
+    YearTo:
+      name: year_to
+      in: query
+      description: Only anime that started in this year or earlier (anime without a known start year are left out). Must not be less than `year_from`.
+      schema:
+        type: integer
+        minimum: 1900
+        maximum: 2100
+      example: 2010
+    MinScore:
+      name: min_score
+      in: query
+      description: Only anime with at least this score, 0–10 (anime without a score are left out).
+      schema:
+        type: number
+        minimum: 0
+        maximum: 10
+      example: 8
+    OnWatchlist:
+      name: on_watchlist
+      in: query
+      description: '`true`: only anime on your watchlist. `false`: only anime not on it.'
+      schema:
+        type: boolean
+    WatchlistStatusFilter:
+      name: watchlist_status
+      in: query
+      description: Only anime whose watchlist entry has this status.
+      schema:
+        $ref: '#/components/schemas/WatchStatus'
+    Sort:
+      name: sort
+      in: query
+      description: |
+        The order of the results. A leading `-` means descending. Ties are broken by `id`,
+        so pages never overlap. Anime without a value for the sort field come last.
+      schema:
+        type: string
+        enum: [popularity, -popularity, score, -score, start_year, -start_year, title, -title]
+        default: -popularity
+    Page:
+      name: page
+      in: query
+      description: Page number, starting at 1.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100000
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      description: Anime per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 24
+
+  responses:
+    InvalidRequest:
+      description: |
+        The request is malformed: a query or path parameter has the wrong type or is out of
+        range, an unknown query parameter or value was sent, or the body is not valid JSON.
+        `errors` lists every problem found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblem'
+          examples:
+            badPageSize:
+              $ref: '#/components/examples/InvalidRequestProblem'
+    NotFound:
+      description: The anime (or its watchlist entry) does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            noAnime:
+              $ref: '#/components/examples/NotFoundProblem'
+    UnsupportedMediaType:
+      description: The request body is not `application/json`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationError:
+      description: The body is valid JSON but breaks the schema or a rule. `errors` lists every problem found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblem'
+          examples:
+            tooManyEpisodes:
+              $ref: '#/components/examples/ValidationProblem'
+    ServiceUnavailable:
+      description: The database is unavailable. Try again later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            databaseDown:
+              $ref: '#/components/examples/ServiceUnavailableProblem'
+    InternalError:
+      description: An unexpected error. The response never contains internal details.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    # --- Vocabularies -----------------------------------------------------------------
+    ReleaseStatus:
+      description: AniList's release status (`MediaStatus`).
+      type: string
+      enum: [FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED, HIATUS]
+    AnimeFormat:
+      description: AniList's format for anime (`MediaFormat`, without the manga-only values).
+      type: string
+      enum: [TV, TV_SHORT, MOVIE, SPECIAL, OVA, ONA, MUSIC]
+    WatchStatus:
+      description: Where you are with an anime.
+      type: string
+      enum: [planning, watching, completed, paused, dropped]
+
+    # --- Anime ------------------------------------------------------------------------
+    AnimeBase:
+      description: The fields shared by `AnimeSummary` and `AnimeDetail`. Not used on its own.
+      type: object
+      required:
+        - id
+        - anilist_id
+        - title
+        - title_english
+        - title_japanese
+        - format
+        - status
+        - episodes
+        - start_year
+        - end_year
+        - score
+        - popularity
+        - image_url
+        - franchises
+        - watchlist_entry
+      properties:
+        id:
+          description: AnimeVerse's id. Use it in URLs.
+          type: integer
+          minimum: 1
+          examples: [1]
+        anilist_id:
+          description: AniList's id of the anime.
+          type: integer
+          minimum: 1
+          examples: [20]
+        title:
+          description: The main (romaji) title. Always known.
+          type: string
+          minLength: 1
+          examples: [NARUTO]
+        title_english:
+          description: English title, if AniList has one.
+          type: [string, 'null']
+          examples: [Naruto]
+        title_japanese:
+          description: Native (Japanese) title, if AniList has one.
+          type: [string, 'null']
+          examples: [NARUTO -ナルト-]
+        format:
+          description: |
+            Format of the anime, as sent by AniList. Currently one of the `AnimeFormat`
+            values, but stored as free text so a new AniList value never breaks the import:
+            clients must accept unknown values. `null` if AniList doesn't say.
+          type: [string, 'null']
+          x-extensible-enum: [TV, TV_SHORT, MOVIE, SPECIAL, OVA, ONA, MUSIC]
+          examples: [TV]
+        status:
+          description: |
+            Release status, as sent by AniList. Currently one of the `ReleaseStatus` values;
+            clients must accept unknown values. `null` if AniList doesn't say.
+          type: [string, 'null']
+          x-extensible-enum: [FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED, HIATUS]
+          examples: [FINISHED]
+        episodes:
+          description: Number of episodes. `null` if unknown (e.g. still airing or not announced).
+          type: [integer, 'null']
+          minimum: 0
+          examples: [220]
+        start_year:
+          description: Year it started (or will start). `null` if unknown.
+          type: [integer, 'null']
+          examples: [2002]
+        end_year:
+          description: Year it ended. `null` if unknown or not ended.
+          type: [integer, 'null']
+          examples: [2007]
+        score:
+          description: AniList's weighted score converted to 0–10 with two decimals. `null` if not rated yet.
+          type: [number, 'null']
+          minimum: 0
+          maximum: 10
+          examples: [8.0]
+        popularity:
+          description: Number of AniList users with this anime on their list. `null` if unknown.
+          type: [integer, 'null']
+          minimum: 0
+          examples: [743139]
+        image_url:
+          description: Cover image hosted by AniList. `null` if there is none.
+          type: [string, 'null']
+          format: uri
+          examples: ['https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20-dE6UHbFFg1A5.jpg']
+        franchises:
+          description: The franchises this anime belongs to (usually one).
+          type: array
+          items:
+            $ref: '#/components/schemas/FranchiseRef'
+        watchlist_entry:
+          description: Your watchlist entry. `null` if the anime is not on your watchlist.
+          oneOf:
+            - $ref: '#/components/schemas/WatchlistEntry'
+            - type: 'null'
+
+    # Summary and Detail extend AnimeBase and are both closed with
+    # unevaluatedProperties (JSON Schema 2020-12): additionalProperties can't see
+    # the properties defined inside allOf, so it would reject Detail's extra fields.
+    AnimeSummary:
+      description: An anime as shown in lists. `AnimeDetail` adds the remaining fields.
+      allOf:
+        - $ref: '#/components/schemas/AnimeBase'
+      unevaluatedProperties: false
+
+    AnimeDetail:
+      description: Every stored field of one anime.
+      allOf:
+        - $ref: '#/components/schemas/AnimeBase'
+        - type: object
+          required:
+            - mal_id
+            - synopsis
+            - aired_from
+            - aired_to
+            - anilist_url
+            - updated_at
+          properties:
+            mal_id:
+              description: MyAnimeList id as reported by AniList. `null` if unknown.
+              type: [integer, 'null']
+              minimum: 1
+              examples: [20]
+            synopsis:
+              description: Plain-text synopsis (AniList's HTML removed). `null` if there is none.
+              type: [string, 'null']
+              examples: ['Naruto Uzumaki, a hyperactive and knuckle-headed ninja...']
+            aired_from:
+              description: First air date. `null` unless year, month and day are all known.
+              type: [string, 'null']
+              format: date
+              examples: ['2002-10-03']
+            aired_to:
+              description: Last air date. `null` unless year, month and day are all known.
+              type: [string, 'null']
+              format: date
+              examples: ['2007-02-08']
+            anilist_url:
+              description: The anime's page on AniList. `null` if unknown.
+              type: [string, 'null']
+              format: uri
+              examples: ['https://anilist.co/anime/20']
+            updated_at:
+              description: When the import last refreshed this anime.
+              type: string
+              format: date-time
+              examples: ['2026-11-21T12:24:31Z']
+      unevaluatedProperties: false
+
+    AnimePage:
+      type: object
+      additionalProperties: false
+      required: [data, meta, links]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnimeSummary'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        links:
+          $ref: '#/components/schemas/PageLinks'
+
+    PageMeta:
+      type: object
+      additionalProperties: false
+      required: [page, page_size, total_items, total_pages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total_items:
+          description: How many anime match the filters, over all pages.
+          type: integer
+          minimum: 0
+        total_pages:
+          description: Number of pages (0 when nothing matches).
+          type: integer
+          minimum: 0
+
+    PageLinks:
+      description: Ready-made links that keep the same filters, sort and page size.
+      type: object
+      additionalProperties: false
+      required: [self, next, prev]
+      properties:
+        self:
+          type: string
+          format: uri-reference
+          examples: [/v1/anime?page=2&page_size=24&sort=-popularity]
+        next:
+          description: The next page. `null` on the last page.
+          type: [string, 'null']
+          format: uri-reference
+        prev:
+          description: The previous page. `null` on the first page.
+          type: [string, 'null']
+          format: uri-reference
+
+    # --- Franchises -------------------------------------------------------------------
+    FranchiseRef:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          examples: [1]
+        name:
+          type: string
+          minLength: 1
+          examples: [Naruto]
+
+    Franchise:
+      type: object
+      additionalProperties: false
+      required: [id, name, anime_count]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          examples: [1]
+        name:
+          type: string
+          minLength: 1
+          examples: [Naruto]
+        anime_count:
+          description: How many anime the franchise has.
+          type: integer
+          minimum: 0
+          examples: [26]
+
+    FranchiseList:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Franchise'
+
+    # --- Watchlist --------------------------------------------------------------------
+    WatchlistEntryInput:
+      description: What you send to create or replace a watchlist entry. Every field is required; use `null` for no rating or no notes.
+      type: object
+      additionalProperties: false
+      required: [status, episodes_watched, rating, notes]
+      properties:
+        status:
+          $ref: '#/components/schemas/WatchStatus'
+        episodes_watched:
+          description: Episodes you have watched.
+          type: integer
+          minimum: 0
+          maximum: 10000
+          examples: [110]
+        rating:
+          description: Your rating from 1 to 10. `null` for no rating.
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 10
+          examples: [9]
+        notes:
+          description: Free notes, up to 1000 characters. `null` (or blank) for none.
+          type: [string, 'null']
+          maxLength: 1000
+          examples: [Rewatch the Chunin exam arc.]
+
+    WatchlistEntry:
+      description: Your watchlist entry for one anime.
+      type: object
+      additionalProperties: false
+      required: [anime_id, status, episodes_watched, rating, notes, created_at, updated_at]
+      properties:
+        anime_id:
+          type: integer
+          minimum: 1
+          examples: [1]
+        status:
+          $ref: '#/components/schemas/WatchStatus'
+        episodes_watched:
+          type: integer
+          minimum: 0
+          examples: [110]
+        rating:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 10
+          examples: [9]
+        notes:
+          type: [string, 'null']
+          maxLength: 1000
+          examples: [Rewatch the Chunin exam arc.]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # --- Errors (RFC 9457 Problem Details) --------------------------------------------
+    Problem:
+      description: |
+        RFC 9457 Problem Details. `type` identifies the kind of problem and is stable:
+        clients should branch on `type` (or `status`), not on `title` or `detail`.
+      type: object
+      required: [type, title, status, detail, instance]
+      properties:
+        type:
+          description: Identifies the kind of problem. Not meant to be opened in a browser.
+          type: string
+          format: uri
+          enum:
+            - urn:animeverse:problem:invalid-request
+            - urn:animeverse:problem:validation-error
+            - urn:animeverse:problem:not-found
+            - urn:animeverse:problem:method-not-allowed
+            - urn:animeverse:problem:unsupported-media-type
+            - urn:animeverse:problem:service-unavailable
+            - urn:animeverse:problem:internal-error
+        title:
+          description: Short, human-readable summary of the kind of problem. The same for every occurrence of a `type`.
+          type: string
+          examples: [Resource not found]
+        status:
+          description: The HTTP status code, repeated for convenience.
+          type: integer
+          minimum: 400
+          maximum: 599
+          examples: [404]
+        detail:
+          description: Human-readable explanation of this occurrence.
+          type: string
+          examples: [There is no anime with id 9999.]
+        instance:
+          description: The path of the request that failed.
+          type: string
+          format: uri-reference
+          examples: [/v1/anime/9999]
+
+    ValidationProblem:
+      description: A `Problem` with the list of every invalid field.
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      description: One invalid field.
+      type: object
+      additionalProperties: false
+      required: [location, field, code, message]
+      properties:
+        location:
+          description: Where the field is.
+          type: string
+          enum: [body, query, path]
+        field:
+          description: |
+            The field's name, e.g. `episodes_watched` or `page_size`. Nested fields are
+            joined with dots. Empty for a problem with the body as a whole (e.g. invalid
+            JSON).
+          type: string
+          examples: [episodes_watched]
+        code:
+          description: |
+            Machine-readable reason, stable across versions. Rule codes are listed in
+            `putWatchlistEntry`; the others include `required`, `invalid_type`,
+            `too_small`, `too_large`, `too_long`, `not_allowed` (unknown value or field)
+            and `invalid_json`. Clients must accept unknown codes.
+          type: string
+          examples: [exceeds_episodes]
+        message:
+          description: Human-readable explanation, suitable to show next to the form field.
+          type: string
+          examples: [Can't be more than the anime's 220 episodes.]
+
+  examples:
+    AnimePage:
+      summary: First page, two per page
+      value:
+        data:
+          - id: 1
+            anilist_id: 20
+            title: NARUTO
+            title_english: Naruto
+            title_japanese: NARUTO -ナルト-
+            format: TV
+            status: FINISHED
+            episodes: 220
+            start_year: 2002
+            end_year: 2007
+            score: 8.0
+            popularity: 743139
+            image_url: https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20-dE6UHbFFg1A5.jpg
+            franchises:
+              - id: 1
+                name: Naruto
+            watchlist_entry: null
+          - id: 5
+            anilist_id: 1735
+            title: 'NARUTO: Shippuuden'
+            title_english: 'Naruto: Shippuden'
+            title_japanese: NARUTO -ナルト- 疾風伝
+            format: TV
+            status: FINISHED
+            episodes: 500
+            start_year: 2007
+            end_year: 2017
+            score: 8.2
+            popularity: 624795
+            image_url: https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1735-kGfVm0YqCPcu.png
+            franchises:
+              - id: 1
+                name: Naruto
+            watchlist_entry:
+              anime_id: 5
+              status: watching
+              episodes_watched: 110
+              rating: 9
+              notes: Rewatch the Chunin exam arc.
+              created_at: '2026-11-23T18:00:00Z'
+              updated_at: '2026-11-23T18:00:00Z'
+        meta:
+          page: 1
+          page_size: 2
+          total_items: 26
+          total_pages: 13
+        links:
+          self: /v1/anime?franchise=1&sort=-popularity&page=1&page_size=2
+          next: /v1/anime?franchise=1&sort=-popularity&page=2&page_size=2
+          prev: null
+    AnimeDetail:
+      summary: An anime not on your watchlist
+      value:
+        id: 1
+        anilist_id: 20
+        mal_id: 20
+        title: NARUTO
+        title_english: Naruto
+        title_japanese: NARUTO -ナルト-
+        format: TV
+        status: FINISHED
+        episodes: 220
+        start_year: 2002
+        end_year: 2007
+        aired_from: '2002-10-03'
+        aired_to: '2007-02-08'
+        score: 8.0
+        popularity: 743139
+        synopsis: Naruto Uzumaki, a hyperactive and knuckle-headed ninja, lives in Konohagakure...
+        image_url: https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20-dE6UHbFFg1A5.jpg
+        anilist_url: https://anilist.co/anime/20
+        franchises:
+          - id: 1
+            name: Naruto
+        watchlist_entry: null
+        updated_at: '2026-11-21T12:24:31Z'
+    WatchlistEntry:
+      summary: A new entry
+      value:
+        anime_id: 5
+        status: watching
+        episodes_watched: 110
+        rating: 9
+        notes: Rewatch the Chunin exam arc.
+        created_at: '2026-11-23T18:00:00Z'
+        updated_at: '2026-11-23T18:00:00Z'
+    InvalidRequestProblem:
+      summary: A page size over the limit
+      value:
+        type: urn:animeverse:problem:invalid-request
+        title: Invalid request
+        status: 400
+        detail: The request has 1 invalid parameter.
+        instance: /v1/anime
+        errors:
+          - location: query
+            field: page_size
+            code: too_large
+            message: Must be at most 100.
+    ValidationProblem:
+      summary: More episodes watched than the anime has
+      value:
+        type: urn:animeverse:problem:validation-error
+        title: Validation failed
+        status: 422
+        detail: The watchlist entry breaks 1 rule.
+        instance: /v1/anime/1/watchlist-entry
+        errors:
+          - location: body
+            field: episodes_watched
+            code: exceeds_episodes
+            message: Can't be more than the anime's 220 episodes.
+    NotFoundProblem:
+      summary: No anime with that id
+      value:
+        type: urn:animeverse:problem:not-found
+        title: Resource not found
+        status: 404
+        detail: There is no anime with id 9999.
+        instance: /v1/anime/9999
+    ServiceUnavailableProblem:
+      summary: The database is down
+      value:
+        type: urn:animeverse:problem:service-unavailable
+        title: Service unavailable
+        status: 503
+        detail: The database is unavailable. Try again later.
+        instance: /v1/anime
