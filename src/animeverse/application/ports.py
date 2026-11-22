@@ -2,17 +2,23 @@
 
 A port says what the application needs, not how it is done. Infrastructure
 provides the implementations (adapters): AniList for AnimeSource, PostgreSQL
-for CatalogStore and CatalogReader. Tests use in-memory ones.
+for CatalogStore, CatalogReader, CatalogQuery and WatchlistStore. Tests use
+in-memory ones.
 
 Every port lists the errors it may raise. Adapters translate their own
 errors (httpx, psycopg...) into these, so no library error crosses a boundary.
 """
 
+import math
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import Protocol
+from datetime import datetime
+from decimal import Decimal
+from enum import StrEnum
+from typing import Generic, Protocol, TypeVar
 
 from animeverse.domain.models import Anime, Franchise
+from animeverse.domain.watchlist import WatchlistEntry, WatchStatus
 
 # --- Errors ---------------------------------------------------------------------
 
@@ -103,15 +109,162 @@ class CatalogReader(Protocol):
         ...
 
 
+# --- Browsing the catalogue -------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class FranchiseRef:
+    id: int
+    name: str
+
+
+@dataclass(frozen=True)
+class FranchiseCount:
+    id: int
+    name: str
+    anime_count: int
+
+
+@dataclass(frozen=True)
+class StoredWatchlistEntry:
+    anime_id: int
+    entry: WatchlistEntry
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
+class CatalogAnime:
+    """A stored anime as the catalogue shows it: with its id, franchises and watchlist entry."""
+
+    id: int  # AnimeVerse's id (anime.id), not AniList's
+    anime: Anime
+    franchises: tuple[FranchiseRef, ...]  # alphabetical
+    watchlist_entry: StoredWatchlistEntry | None
+    updated_at: datetime  # when an import last refreshed it
+
+
+@dataclass(frozen=True)
+class AnimeFilters:
+    """Every filter is optional; the ones given are combined with AND."""
+
+    text: str | None = None  # contained in any title, ignoring case
+    franchise_id: int | None = None
+    status: str | None = None  # anime.status, exact
+    format: str | None = None  # anime.type, exact
+    year_from: int | None = None  # start_year >= (anime without start_year are left out)
+    year_to: int | None = None  # start_year <=
+    min_score: Decimal | None = None  # score >= (anime without score are left out)
+    on_watchlist: bool | None = None
+    watchlist_status: WatchStatus | None = None
+
+
+class SortField(StrEnum):
+    POPULARITY = "popularity"
+    SCORE = "score"
+    START_YEAR = "start_year"
+    TITLE = "title"  # ignoring case
+
+
+@dataclass(frozen=True)
+class Sort:
+    """Missing values always come last; ties are broken by id (ascending), so pages never overlap."""
+
+    field: SortField = SortField.POPULARITY
+    descending: bool = True
+
+
+@dataclass(frozen=True)
+class PageRequest:
+    number: int = 1  # starts at 1
+    size: int = 24
+
+    @property
+    def offset(self) -> int:
+        return (self.number - 1) * self.size
+
+
+T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class Page(Generic[T]):
+    items: list[T]
+    total_items: int  # matching items over all pages
+    request: PageRequest
+
+    @property
+    def total_pages(self) -> int:
+        return math.ceil(self.total_items / self.request.size)
+
+
+class CatalogQuery(Protocol):
+    """Read-only access to the stored catalogue. Every method raises StoreUnavailable."""
+
+    def list_anime(self, filters: AnimeFilters, sort: Sort, page: PageRequest) -> Page[CatalogAnime]:
+        """One page of the anime matching every filter, in the given order.
+
+        A page past the last one is empty (not an error); total_items still counts every match.
+        """
+        ...
+
+    def get_anime(self, anime_id: int) -> CatalogAnime | None:
+        """The anime with this id, or None if there is none."""
+        ...
+
+    def list_franchises(self) -> list[FranchiseCount]:
+        """Every franchise, alphabetical, with its number of anime (0 included)."""
+        ...
+
+
+# --- The watchlist ----------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SavedEntry:
+    stored: StoredWatchlistEntry
+    created: bool  # True: new entry; False: an existing one was replaced
+
+
+class WatchlistStore(Protocol):
+    """Writes the user's watchlist. Every method raises StoreUnavailable.
+
+    It trusts its caller: entries are checked against the domain rules before they get here.
+    """
+
+    def save(self, anime_id: int, entry: WatchlistEntry) -> SavedEntry:
+        """Create or replace the entry of this anime (the anime must exist).
+
+        Raises RecordRefused if the store refuses the values.
+        """
+        ...
+
+    def delete(self, anime_id: int) -> bool:
+        """Remove the entry of this anime. False if there was none."""
+        ...
+
+
 __all__ = [
+    "AnimeFilters",
     "AnimeSource",
+    "CatalogAnime",
+    "CatalogQuery",
     "CatalogReader",
     "CatalogSession",
     "CatalogStore",
+    "FranchiseCount",
+    "FranchiseRef",
+    "Page",
+    "PageRequest",
     "RecordRefused",
     "Rejection",
+    "SavedEntry",
     "SavedMember",
     "SearchResult",
+    "Sort",
+    "SortField",
     "SourceUnavailable",
     "StoreUnavailable",
+    "StoredWatchlistEntry",
+    "WatchlistStore",
 ]
