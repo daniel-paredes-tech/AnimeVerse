@@ -65,7 +65,7 @@ def committing_conn(test_db_settings):
     connection = connect(test_db_settings)
 
     def empty_tables():
-        connection.execute("TRUNCATE anime_franchises, anime, franchises RESTART IDENTITY")
+        connection.execute("TRUNCATE watchlist_entries, anime_franchises, anime, franchises RESTART IDENTITY")
         connection.commit()
 
     empty_tables()
