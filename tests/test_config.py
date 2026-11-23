@@ -16,7 +16,14 @@ VALID_ENV = {
 def env(monkeypatch):
     """Use only the variables set by each test: ignore .env and the real environment."""
     monkeypatch.setattr(config, "load_dotenv", lambda: None)
-    for name in [*VALID_ENV, "POSTGRES_HOST", "POSTGRES_SSLMODE", "POSTGRES_CONNECT_TIMEOUT", "LOG_LEVEL"]:
+    for name in [
+        *VALID_ENV,
+        "POSTGRES_HOST",
+        "POSTGRES_SSLMODE",
+        "POSTGRES_CONNECT_TIMEOUT",
+        "LOG_LEVEL",
+        "OPENAPI_PATH",
+    ]:
         monkeypatch.delenv(name, raising=False)
     for name, value in VALID_ENV.items():
         monkeypatch.setenv(name, value)
@@ -73,3 +80,21 @@ def test_invalid_values_raise_clear_errors(env, name, value):
     with pytest.raises(config.ConfigError, match=name):
         config.load_database_settings()
         config.load_log_level()
+
+
+def test_openapi_path_defaults_to_the_contract_in_the_current_folder(env, tmp_path):
+    (tmp_path / "openapi.yaml").write_text("openapi: 3.1.0\n")
+    env.chdir(tmp_path)
+
+    assert config.load_openapi_path().name == "openapi.yaml"
+
+
+def test_openapi_path_can_be_set_and_must_exist(env, tmp_path):
+    contract = tmp_path / "contract.yaml"
+    contract.write_text("openapi: 3.1.0\n")
+    env.setenv("OPENAPI_PATH", str(contract))
+    assert config.load_openapi_path() == contract
+
+    env.setenv("OPENAPI_PATH", str(tmp_path / "missing.yaml"))
+    with pytest.raises(config.ConfigError, match="not found"):
+        config.load_openapi_path()

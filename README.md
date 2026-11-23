@@ -75,14 +75,35 @@ docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < q
 # A SQL shell
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
-# A read-only page in the browser, served on localhost only
+# The REST API, on this computer only: http://localhost:8000/v1/anime
 .venv/bin/animeverse serve --open
+curl "http://localhost:8000/v1/anime?status=RELEASING"     # e.g. what is airing now
+```
+
+### The API
+
+`openapi.yaml` is the contract: it was written before the code, and the server is
+tested against it ([ADR 0010](docs/adr/0010-contract-first-openapi.md)). The running
+API serves it at `/v1/openapi.yaml`.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /v1/anime` | List with filters (`q`, `franchise`, `status`, `format`, `year_from`, `year_to`, `min_score`, `on_watchlist`, `watchlist_status`), `sort` and pages |
+| `GET /v1/anime/{id}` | One anime, with its franchises and your watchlist entry |
+| `PUT` / `DELETE /v1/anime/{id}/watchlist-entry` | Create, replace or remove your watchlist entry (validated) |
+| `GET /v1/franchises` | Every franchise with its number of anime |
+
+Every error is an RFC 9457 Problem Details JSON (`application/problem+json`) with the
+same fields; a 400 or 422 lists each invalid field with a stable `code`.
+
+```bash
+npx @redocly/cli lint openapi.yaml    # lint the contract (needs Node.js)
 ```
 
 ### Tests and checks
 
 ```bash
-.venv/bin/python -m pytest            # 180 tests; the database must be running
+.venv/bin/python -m pytest            # every test, including the API contract tests; the database must be running
 .venv/bin/python -m pytest -m live    # optional: one test against the real AniList API
 .venv/bin/ruff check . && .venv/bin/ruff format --check .   # lint and formatting
 .venv/bin/mypy                        # types (strict)
@@ -131,13 +152,16 @@ entrypoints ──► infrastructure ──► application ──► domain
 ```
 src/animeverse/
   domain/           models.py (Anime, Franchise) · membership.py (which search results belong to a franchise)
-  application/      ports.py (the contracts: AnimeSource, CatalogStore, CatalogReader, and their errors)
-                    import_catalog.py (the import use case)
+                    watchlist.py (a watchlist entry and its rules)
+  application/      ports.py (the contracts: AnimeSource, CatalogStore, CatalogQuery, WatchlistStore… and their errors)
+                    import_catalog.py · catalog.py · watchlist.py (the use cases) · errors.py
   infrastructure/
     anilist/        client.py (HTTP) · mapper.py (AniList JSON → Anime) · source.py (the AnimeSource port)
-    postgres/       repository.py (all the SQL) · store.py (the store ports) · migrations/ (Alembic)
+    postgres/       repository.py · catalog_queries.py · watchlist_repository.py (the SQL)
+                    store.py (the store ports) · migrations/ (Alembic)
   config/           settings.py (environment variables) · franchises.py (what to import)
-  entrypoints/      cli.py (the `animeverse` command; the only place that picks adapters) · web/ (local page)
+  entrypoints/      cli.py (the `animeverse` command; the only place that picks adapters)
+                    api/ (the REST API: routes, schemas, Problem Details, local-only security)
 ```
 
 - **The use case only knows the ports.** It doesn't know AniList or PostgreSQL exist, so it is tested with in-memory fakes, and a new data source, a cloud database or a web page doesn't change it.
