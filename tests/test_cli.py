@@ -35,3 +35,10 @@ def test_migrate_with_unreachable_database_gives_exit_code_2(test_db_settings, c
 
     assert cli.run_migrate(unreachable) == 2
     assert "Cannot connect to the database" in caplog.text
+
+
+def test_serve_without_the_contract_file_gives_exit_code_2(test_db_settings, monkeypatch, tmp_path, caplog):
+    monkeypatch.setenv("OPENAPI_PATH", str(tmp_path / "missing.yaml"))
+
+    assert cli.run_serve(test_db_settings, port=0, open_browser=False) == 2
+    assert "API contract was not found" in caplog.text

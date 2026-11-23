@@ -2,14 +2,14 @@
 
     animeverse migrate           bring the database schema up to date (run it first)
     animeverse import            import every configured franchise from AniList
-    animeverse serve [--open]    private, read-only local page at http://localhost:8000
+    animeverse serve [--open]    the web UI and REST API at http://localhost:8000 (this computer only)
 
 This is the only module that chooses concrete implementations: AniList as
 the data source, PostgreSQL as the store. Swapping either one (another API,
 a database in the cloud) means changing the wiring here, not the use cases.
 
 Exit codes: 0 = success, 1 = at least one franchise failed,
-2 = could not start (missing settings, database unreachable, port busy).
+2 = could not start (missing settings or contract file, database unreachable, port busy).
 `migrate` returns 0 or 2.
 """
 
@@ -17,17 +17,33 @@ import argparse
 import logging
 from collections.abc import Sequence
 
+import psycopg
+
+from animeverse.application.catalog import BrowseCatalog
 from animeverse.application.import_catalog import ImportCatalog
 from animeverse.application.ports import StoreUnavailable
+from animeverse.application.watchlist import ManageWatchlist
 from animeverse.config.franchises import FRANCHISES
-from animeverse.config.settings import ConfigError, DatabaseSettings, load_database_settings, load_log_level
+from animeverse.config.settings import (
+    ConfigError,
+    DatabaseSettings,
+    load_database_settings,
+    load_log_level,
+    load_openapi_path,
+    load_web_dist,
+)
+from animeverse.entrypoints.api.app import create_app
+from animeverse.entrypoints.api.server import DEFAULT_PORT, serve
 from animeverse.entrypoints.report import format_report
-from animeverse.entrypoints.web.server import DEFAULT_PORT, serve
 from animeverse.infrastructure.anilist.client import AniListClient
 from animeverse.infrastructure.anilist.source import AniListSource
 from animeverse.infrastructure.postgres.connection import connect
 from animeverse.infrastructure.postgres.migrate import upgrade_to_latest
-from animeverse.infrastructure.postgres.store import PostgresCatalogReader, PostgresCatalogStore
+from animeverse.infrastructure.postgres.store import (
+    PostgresCatalogQuery,
+    PostgresCatalogStore,
+    PostgresWatchlistStore,
+)
 
 logger = logging.getLogger("animeverse")
 
@@ -39,9 +55,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("migrate", help="bring the database schema up to date")
     commands.add_parser("import", help="import every configured franchise from AniList")
-    serve_parser = commands.add_parser("serve", help="private, read-only local page with the stored data")
+    serve_parser = commands.add_parser("serve", help="the web UI and REST API, on this computer only")
     serve_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port to use (default {DEFAULT_PORT})")
-    serve_parser.add_argument("--open", action="store_true", help="open the page in your default browser")
+    serve_parser.add_argument("--open", action="store_true", help="open it in your default browser")
     args = parser.parse_args(argv)
 
     logging.basicConfig(format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
@@ -56,7 +72,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_migrate(settings)
     if args.command == "import":
         return run_import(settings)
-    return serve(PostgresCatalogReader(lambda: connect(settings)), port=args.port, open_browser=args.open)
+    return run_serve(settings, port=args.port, open_browser=args.open)
 
 
 def run_migrate(settings: DatabaseSettings) -> int:
@@ -67,6 +83,32 @@ def run_migrate(settings: DatabaseSettings) -> int:
         return EXIT_CANNOT_START
     logger.info("Database schema is up to date.")
     return EXIT_OK
+
+
+def run_serve(settings: DatabaseSettings, port: int, open_browser: bool) -> int:
+    """Wire the API to PostgreSQL and serve it.
+
+    The database is not checked here: while it is down, every request is
+    answered with a 503 problem explaining it, and it works again as soon as
+    the database is back.
+    """
+    try:
+        contract = load_openapi_path().read_bytes()
+    except ConfigError as exc:
+        logger.error("Configuration problem: %s", exc)
+        return EXIT_CANNOT_START
+
+    def open_connection() -> psycopg.Connection:
+        return connect(settings)
+
+    web_dist = load_web_dist()
+    if web_dist is None:
+        logger.info("No built web UI found (run `npm run build` in web/): serving the API only.")
+
+    query = PostgresCatalogQuery(open_connection)
+    watchlist = ManageWatchlist(query, PostgresWatchlistStore(open_connection))
+    app = create_app(BrowseCatalog(query), watchlist, contract, web_dist=web_dist)
+    return serve(app, port=port, open_browser=open_browser, has_ui=web_dist is not None)
 
 
 def run_import(settings: DatabaseSettings) -> int:

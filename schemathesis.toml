@@ -1,0 +1,22 @@
+# Schemathesis settings, read by tests/test_api_contract.py (ADR 0010).
+# Schemathesis sends generated requests to the API and checks every response
+# against openapi.yaml: status codes, content types, headers and bodies.
+
+# The API only answers requests whose Host is localhost (DNS-rebinding protection).
+base-url = "http://localhost"
+
+# "positive_data_acceptance" expects every request that is valid by the schema
+# to succeed. Two operations refuse some schema-valid requests on purpose,
+# because of business rules the contract documents. Only those codes, only
+# for those operations, are allowed:
+
+[[operations]]
+include-operation-id = "listAnime"
+# year_to before year_from: each value is valid alone, the pair is refused (400).
+checks.positive_data_acceptance.expected-statuses = ["2xx", "400", "404"]
+
+[[operations]]
+include-operation-id = "putWatchlistEntry"
+# A body valid by the schema can still break a watchlist rule (422), e.g. more
+# episodes watched than the anime has. The rules are listed in the contract.
+checks.positive_data_acceptance.expected-statuses = ["2xx", "404", "422"]

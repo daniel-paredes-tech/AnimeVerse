@@ -15,6 +15,8 @@ dependencies = [
     "python-dotenv==1.2.4",   # reads settings from .env
     "alembic==1.20.1",        # numbered, versioned database migrations
     "sqlalchemy==2.1.8",      # required by Alembic; the application itself writes plain SQL
+    "fastapi==0.165.0",       # the REST API (ADR 0009); brings Starlette and Pydantic
+    "uvicorn==0.54.0",        # the server that runs the API
 ]
 
 [project.optional-dependencies]
@@ -23,6 +25,7 @@ dev = [
     "ruff==0.17.4",   # linter and formatter
     "mypy==2.4.1",    # type checker: makes the Protocol contracts between layers real
     "import-linter==2.16",  # enforces which layer may import which
+    "schemathesis==4.34.0", # tests the API against openapi.yaml (ADR 0010)
 ]
 
 [project.scripts]
@@ -41,6 +44,12 @@ testpaths = ["tests"]
 # and run only on demand with: pytest -m live
 markers = ["live: calls the real AniList API (opt-in, run with -m live)"]
 addopts = "-m 'not live'"
+filterwarnings = [
+    # Starlette's TestClient announces a future move from httpx to "httpx2". The
+    # tests work with the httpx already pinned for the AniList client; switching
+    # would add a second HTTP library. Revisit when Starlette drops httpx.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
 
 [tool.ruff]
 line-length = 120
@@ -76,7 +85,13 @@ layers = [
 name = "Domain and application never import drivers, HTTP clients or frameworks"
 type = "forbidden"
 source_modules = ["animeverse.domain", "animeverse.application"]
-forbidden_modules = ["psycopg", "httpx", "dotenv", "sqlalchemy", "alembic"]
+forbidden_modules = ["psycopg", "httpx", "dotenv", "sqlalchemy", "alembic", "fastapi", "starlette", "pydantic", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "Only the entrypoints know the web framework"
+type = "forbidden"
+source_modules = ["animeverse.infrastructure", "animeverse.config"]
+forbidden_modules = ["fastapi", "starlette", "uvicorn"]
 
 [[tool.importlinter.contracts]]
 name = "Adapters are independent of each other"

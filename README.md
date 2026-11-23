@@ -1,6 +1,6 @@
 # AnimeVerse
 
-A small data pipeline that imports anime from seven franchises from the public [AniList](https://anilist.co) API into a PostgreSQL database running in Docker. The import can be run any number of times without creating duplicates.
+A small data pipeline that imports anime from seven franchises from the public [AniList](https://anilist.co) API into a PostgreSQL database running in Docker. The import can be run any number of times without creating duplicates. A REST API, described by an OpenAPI contract, serves the data, and a web UI shows it as a universe map of the franchises, with a personal watchlist.
 
 Built as a homework project for the Migracode training program. Everything runs locally; nothing is deployed.
 
@@ -75,18 +75,62 @@ docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < q
 # A SQL shell
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
-# A read-only page in the browser, served on localhost only
-.venv/bin/animeverse serve --open
+# The web UI and the REST API, on this computer only (build the UI once first, see below)
+.venv/bin/animeverse serve --open                          # http://localhost:8000
+curl "http://localhost:8000/v1/anime?status=RELEASING"     # e.g. what is airing now
+```
+
+### The web UI
+
+A React + Vite + TypeScript app in [`web/`](web/), built only from `openapi.yaml`: its API types are
+generated from the contract, so the build fails if the UI uses something the contract doesn't offer.
+
+```bash
+cd web
+npm ci                # install exactly what package-lock.json lists (Node.js 26)
+npm run build         # web/dist, which `animeverse serve` then serves at /
+npm run dev           # or: a dev server on :5173 that sends /v1 to the API on :8000
+```
+
+- **Universe** (`/`): the seven franchises as constellations in a screentoned night sky. A star's size is
+  its popularity and its dot density its score; hover a star for its card, click a franchise to zoom in.
+  Beside it: what is airing now, what is coming, and what you are watching.
+- **Browse** (`/anime`): every filter, sort and page the API offers, kept in the URL.
+- **Detail** (`/anime/42`): everything stored about one anime, and your watchlist entry, whose form shows the
+  API's own validation messages next to each field.
+
+The design (a weekly manga magazine issue) is described in [DESIGN.md](DESIGN.md). It is built and checked
+for desktop screens.
+
+### The API
+
+`openapi.yaml` is the contract: it was written before the code, and the server is
+tested against it ([ADR 0010](docs/adr/0010-contract-first-openapi.md)). The running
+API serves it at `/v1/openapi.yaml`.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /v1/anime` | List with filters (`q`, `franchise`, `status`, `format`, `year_from`, `year_to`, `min_score`, `on_watchlist`, `watchlist_status`), `sort` and pages |
+| `GET /v1/anime/{id}` | One anime, with its franchises and your watchlist entry |
+| `PUT` / `DELETE /v1/anime/{id}/watchlist-entry` | Create, replace or remove your watchlist entry (validated) |
+| `GET /v1/franchises` | Every franchise with its number of anime |
+
+Every error is an RFC 9457 Problem Details JSON (`application/problem+json`) with the
+same fields; a 400 or 422 lists each invalid field with a stable `code`.
+
+```bash
+npx @redocly/cli lint openapi.yaml    # lint the contract (needs Node.js)
 ```
 
 ### Tests and checks
 
 ```bash
-.venv/bin/python -m pytest            # 180 tests; the database must be running
+.venv/bin/python -m pytest            # every test, including the API contract tests; the database must be running
 .venv/bin/python -m pytest -m live    # optional: one test against the real AniList API
 .venv/bin/ruff check . && .venv/bin/ruff format --check .   # lint and formatting
 .venv/bin/mypy                        # types (strict)
 .venv/bin/lint-imports                # architecture rules
+cd web && npm run gen:api && npm run typecheck && npm test && npm run build   # the web UI
 ```
 
 GitHub Actions runs all of them on every push, on Python 3.11 and 3.14, and builds the container image.
@@ -124,20 +168,24 @@ A hexagonal architecture (ports and adapters): four layers, and dependencies onl
 
 ```
 entrypoints ──► infrastructure ──► application ──► domain
- (CLI, page)     (AniList,          (use case,       (models,
+ (CLI, API)      (AniList,          (use cases,      (models,
                   PostgreSQL)        ports)           rules)
 ```
 
 ```
 src/animeverse/
   domain/           models.py (Anime, Franchise) · membership.py (which search results belong to a franchise)
-  application/      ports.py (the contracts: AnimeSource, CatalogStore, CatalogReader, and their errors)
-                    import_catalog.py (the import use case)
+                    watchlist.py (a watchlist entry and its rules)
+  application/      ports.py (the contracts: AnimeSource, CatalogStore, CatalogQuery, WatchlistStore… and their errors)
+                    import_catalog.py · catalog.py · watchlist.py (the use cases) · errors.py
   infrastructure/
     anilist/        client.py (HTTP) · mapper.py (AniList JSON → Anime) · source.py (the AnimeSource port)
-    postgres/       repository.py (all the SQL) · store.py (the store ports) · migrations/ (Alembic)
+    postgres/       repository.py · catalog_queries.py · watchlist_repository.py (the SQL)
+                    store.py (the store ports) · migrations/ (Alembic)
   config/           settings.py (environment variables) · franchises.py (what to import)
-  entrypoints/      cli.py (the `animeverse` command; the only place that picks adapters) · web/ (local page)
+  entrypoints/      cli.py (the `animeverse` command; the only place that picks adapters)
+                    api/ (the REST API: routes, schemas, Problem Details, local-only security; serves web/dist)
+web/                the web UI (React + TypeScript), built from openapi.yaml
 ```
 
 - **The use case only knows the ports.** It doesn't know AniList or PostgreSQL exist, so it is tested with in-memory fakes, and a new data source, a cloud database or a web page doesn't change it.

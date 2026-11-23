@@ -1,3 +1,4 @@
 # SHA-256 of every committed migration. tests/test_migrations.py fails if one changes.
 # Never edit a line here: write a new migration instead (docs/migrations.md).
 fb4be72a9a264a8fde75cd04686e6ba27a5ed84bf30733d29f97f5aa6a6983fe  0001_baseline.py
+b8d7479a5a99011bd38435abc757c31e03a2f73c72ee71f6494f73467642d44e  0002_watchlist_entries.py

@@ -1,0 +1,517 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-23T11:29:59+00:00",
+  "title": "Design System: AnimeVerse",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Press Ink",
+        "canonical": "#121212",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      },
+      "masthead-red": {
+        "role": "primary",
+        "displayName": "Masthead Red",
+        "canonical": "#e4002b",
+        "tonalRamp": [
+          "oklch(15.0% 0.064 23.9)",
+          "oklch(26.4% 0.113 23.9)",
+          "oklch(37.9% 0.161 23.9)",
+          "oklch(49.3% 0.210 23.9)",
+          "oklch(60.7% 0.210 23.9)",
+          "oklch(72.1% 0.161 23.9)",
+          "oklch(83.6% 0.113 23.9)",
+          "oklch(95.0% 0.064 23.9)"
+        ]
+      },
+      "stock-1": {
+        "role": "franchise-stock",
+        "displayName": "Salmon",
+        "canonical": "#f6c9c2",
+        "tonalRamp": [
+          "oklch(15.0% 0.014 28.5)",
+          "oklch(26.4% 0.025 28.5)",
+          "oklch(37.9% 0.036 28.5)",
+          "oklch(49.3% 0.047 28.5)",
+          "oklch(60.7% 0.047 28.5)",
+          "oklch(72.1% 0.036 28.5)",
+          "oklch(83.6% 0.025 28.5)",
+          "oklch(95.0% 0.014 28.5)"
+        ]
+      },
+      "stock-2": {
+        "role": "franchise-stock",
+        "displayName": "Straw",
+        "canonical": "#f3e6a0",
+        "tonalRamp": [
+          "oklch(15.0% 0.024 98.9)",
+          "oklch(26.4% 0.043 98.9)",
+          "oklch(37.9% 0.062 98.9)",
+          "oklch(49.3% 0.080 98.9)",
+          "oklch(60.7% 0.080 98.9)",
+          "oklch(72.1% 0.062 98.9)",
+          "oklch(83.6% 0.043 98.9)",
+          "oklch(95.0% 0.024 98.9)"
+        ]
+      },
+      "stock-3": {
+        "role": "franchise-stock",
+        "displayName": "Mint",
+        "canonical": "#c9e6d2",
+        "tonalRamp": [
+          "oklch(15.0% 0.011 155.4)",
+          "oklch(26.4% 0.020 155.4)",
+          "oklch(37.9% 0.028 155.4)",
+          "oklch(49.3% 0.037 155.4)",
+          "oklch(60.7% 0.037 155.4)",
+          "oklch(72.1% 0.028 155.4)",
+          "oklch(83.6% 0.020 155.4)",
+          "oklch(95.0% 0.011 155.4)"
+        ]
+      },
+      "stock-4": {
+        "role": "franchise-stock",
+        "displayName": "Powder Blue",
+        "canonical": "#c8dcee",
+        "tonalRamp": [
+          "oklch(15.0% 0.009 245.3)",
+          "oklch(26.4% 0.016 245.3)",
+          "oklch(37.9% 0.023 245.3)",
+          "oklch(49.3% 0.029 245.3)",
+          "oklch(60.7% 0.029 245.3)",
+          "oklch(72.1% 0.023 245.3)",
+          "oklch(83.6% 0.016 245.3)",
+          "oklch(95.0% 0.009 245.3)"
+        ]
+      },
+      "stock-5": {
+        "role": "franchise-stock",
+        "displayName": "Lilac",
+        "canonical": "#d9d0ee",
+        "tonalRamp": [
+          "oklch(15.0% 0.011 299.2)",
+          "oklch(26.4% 0.020 299.2)",
+          "oklch(37.9% 0.029 299.2)",
+          "oklch(49.3% 0.038 299.2)",
+          "oklch(60.7% 0.038 299.2)",
+          "oklch(72.1% 0.029 299.2)",
+          "oklch(83.6% 0.020 299.2)",
+          "oklch(95.0% 0.011 299.2)"
+        ]
+      },
+      "stock-6": {
+        "role": "franchise-stock",
+        "displayName": "Apricot",
+        "canonical": "#f8d6b3",
+        "tonalRamp": [
+          "oklch(15.0% 0.016 67.8)",
+          "oklch(26.4% 0.029 67.8)",
+          "oklch(37.9% 0.041 67.8)",
+          "oklch(49.3% 0.054 67.8)",
+          "oklch(60.7% 0.054 67.8)",
+          "oklch(72.1% 0.041 67.8)",
+          "oklch(83.6% 0.029 67.8)",
+          "oklch(95.0% 0.016 67.8)"
+        ]
+      },
+      "stock-7": {
+        "role": "franchise-stock",
+        "displayName": "Sage",
+        "canonical": "#dce3c3",
+        "tonalRamp": [
+          "oklch(15.0% 0.012 117.3)",
+          "oklch(26.4% 0.021 117.3)",
+          "oklch(37.9% 0.030 117.3)",
+          "oklch(49.3% 0.039 117.3)",
+          "oklch(60.7% 0.039 117.3)",
+          "oklch(72.1% 0.030 117.3)",
+          "oklch(83.6% 0.021 117.3)",
+          "oklch(95.0% 0.012 117.3)"
+        ]
+      },
+      "tone-1": {
+        "role": "tone-ink",
+        "displayName": "Brick (Salmon's dots)",
+        "canonical": "#9e2a1c",
+        "tonalRamp": [
+          "oklch(15.0% 0.042 30.5)",
+          "oklch(26.4% 0.074 30.5)",
+          "oklch(37.9% 0.106 30.5)",
+          "oklch(49.3% 0.138 30.5)",
+          "oklch(60.7% 0.138 30.5)",
+          "oklch(72.1% 0.106 30.5)",
+          "oklch(83.6% 0.074 30.5)",
+          "oklch(95.0% 0.042 30.5)"
+        ]
+      },
+      "tone-2": {
+        "role": "tone-ink",
+        "displayName": "Mustard (Straw's dots)",
+        "canonical": "#946e00",
+        "tonalRamp": [
+          "oklch(15.0% 0.031 84.5)",
+          "oklch(26.4% 0.055 84.5)",
+          "oklch(37.9% 0.079 84.5)",
+          "oklch(49.3% 0.103 84.5)",
+          "oklch(60.7% 0.103 84.5)",
+          "oklch(72.1% 0.079 84.5)",
+          "oklch(83.6% 0.055 84.5)",
+          "oklch(95.0% 0.031 84.5)"
+        ]
+      },
+      "tone-3": {
+        "role": "tone-ink",
+        "displayName": "Bottle Green (Mint's dots)",
+        "canonical": "#1e7a3e",
+        "tonalRamp": [
+          "oklch(15.0% 0.034 150.4)",
+          "oklch(26.4% 0.060 150.4)",
+          "oklch(37.9% 0.086 150.4)",
+          "oklch(49.3% 0.112 150.4)",
+          "oklch(60.7% 0.112 150.4)",
+          "oklch(72.1% 0.086 150.4)",
+          "oklch(83.6% 0.060 150.4)",
+          "oklch(95.0% 0.034 150.4)"
+        ]
+      },
+      "tone-4": {
+        "role": "tone-ink",
+        "displayName": "Navy (Powder Blue's dots)",
+        "canonical": "#1d4f86",
+        "tonalRamp": [
+          "oklch(15.0% 0.029 253.4)",
+          "oklch(26.4% 0.051 253.4)",
+          "oklch(37.9% 0.073 253.4)",
+          "oklch(49.3% 0.095 253.4)",
+          "oklch(60.7% 0.095 253.4)",
+          "oklch(72.1% 0.073 253.4)",
+          "oklch(83.6% 0.051 253.4)",
+          "oklch(95.0% 0.029 253.4)"
+        ]
+      },
+      "tone-5": {
+        "role": "tone-ink",
+        "displayName": "Violet (Lilac's dots)",
+        "canonical": "#4b2a8c",
+        "tonalRamp": [
+          "oklch(15.0% 0.042 293.4)",
+          "oklch(26.4% 0.074 293.4)",
+          "oklch(37.9% 0.105 293.4)",
+          "oklch(49.3% 0.137 293.4)",
+          "oklch(60.7% 0.137 293.4)",
+          "oklch(72.1% 0.105 293.4)",
+          "oklch(83.6% 0.074 293.4)",
+          "oklch(95.0% 0.042 293.4)"
+        ]
+      },
+      "tone-6": {
+        "role": "tone-ink",
+        "displayName": "Rust (Apricot's dots)",
+        "canonical": "#a4520e",
+        "tonalRamp": [
+          "oklch(15.0% 0.035 52.5)",
+          "oklch(26.4% 0.062 52.5)",
+          "oklch(37.9% 0.089 52.5)",
+          "oklch(49.3% 0.116 52.5)",
+          "oklch(60.7% 0.116 52.5)",
+          "oklch(72.1% 0.089 52.5)",
+          "oklch(83.6% 0.062 52.5)",
+          "oklch(95.0% 0.035 52.5)"
+        ]
+      },
+      "tone-7": {
+        "role": "tone-ink",
+        "displayName": "Olive (Sage's dots)",
+        "canonical": "#56740f",
+        "tonalRamp": [
+          "oklch(15.0% 0.034 126.0)",
+          "oklch(26.4% 0.060 126.0)",
+          "oklch(37.9% 0.086 126.0)",
+          "oklch(49.3% 0.112 126.0)",
+          "oklch(60.7% 0.112 126.0)",
+          "oklch(72.1% 0.086 126.0)",
+          "oklch(83.6% 0.060 126.0)",
+          "oklch(95.0% 0.034 126.0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The masthead logotype; the same face, in red and larger, sets the 404 numeral."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles and the series title on a sheet."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "The Universe spread and Browse titles; the zoom head title."
+      },
+      "box-title": {
+        "displayName": "Box title",
+        "purpose": "Ink box heads, the filter rail head, results and section heads, the postcard title."
+      },
+      "card-title": {
+        "displayName": "Card title",
+        "purpose": "Entry and cover-card titles, franchise name plates and plate chips."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text; synopsis capped at 68ch, narration at 65ch."
+      },
+      "body-sm": {
+        "displayName": "Small body",
+        "purpose": "Secondary lines, English titles, meta and the colophon."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Fact terms, field labels, chip-row labels and watch lines, in sentence case."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Buttons, chips and tags."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Inline commands in problem hints, such as the command that starts the database."
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper-gutter",
+        "value": "0 0 0 5px #ffffff",
+        "purpose": "A white gutter around the cover card over the sky; a spread ring, not a shadow."
+      },
+      {
+        "name": "stamp-double-ring",
+        "value": "inset 0 0 0 3px #ffffff, inset 0 0 0 4.5px #e4002b",
+        "purpose": "The hanko stamp's inner ring."
+      }
+    ],
+    "motion": [
+      {
+        "name": "burst",
+        "value": "760ms cubic-bezier(0.16, 1, 0.3, 1); scale 2.6 to 1",
+        "purpose": "The one authored move: the spread bursts towards a chosen constellation behind focus lines."
+      },
+      {
+        "name": "stamp-in",
+        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1); scale 1.6 to 1 with a circular reveal",
+        "purpose": "The hanko pressing in, only for a save the API just confirmed."
+      },
+      {
+        "name": "press-roller",
+        "value": "1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite",
+        "purpose": "Loading: a hard-edged band of dot screen sweeps across a panel."
+      },
+      {
+        "name": "press-roller-strip",
+        "value": "1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite",
+        "purpose": "A thin roller strip over Browse results while the next page loads."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Every animation stops; the roller band rests in the middle."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "masthead-stack",
+        "value": "560px"
+      },
+      {
+        "name": "narrow-map",
+        "value": "720px"
+      },
+      {
+        "name": "single-column",
+        "value": "860px"
+      },
+      {
+        "name": "sheet-stack",
+        "value": "960px"
+      }
+    ],
+    "screentone": {
+      "decorativeDots": "radial-gradient(circle, #121212 30%, transparent 32%) at 8px 8px",
+      "scorePitch": "4.6 map units, grid rotated 45deg",
+      "scoreMaxCoverage": 0.48,
+      "scoreSteps": "half points, 0 to 20; null stays untoned",
+      "skyCoverage": "0.74 at the top to 0.40 at the bottom, in sheets of 0.10 to 0.74, cleared around constellations",
+      "unknownLineScreen": "repeating-linear-gradient(45deg, #121212 0 1.5px, transparent 1.5px 5px)"
+    }
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default printed-box button: paper, 2px ink border, red underline on hover.",
+      "html": "<button class=\"ds-button\">Open in Browse</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0.45rem 0.95rem;border:2px solid #121212;border-radius:0;background:#ffffff;color:#121212;font:700 0.95rem/1.2 'BIZ UDPGothic',sans-serif;cursor:pointer}.ds-button:hover{text-decoration:underline;text-decoration-color:#e4002b;text-decoration-thickness:2px;text-underline-offset:0.2em}.ds-button:focus-visible{outline:3px solid #e4002b;outline-offset:3px}.ds-button:disabled{border-style:dashed;cursor:not-allowed}"
+    },
+    {
+      "name": "Ink Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "The main action in a context, such as going back from a zoom; turns red on hover.",
+      "html": "<button class=\"ds-button-ink\">Back to the universe</button>",
+      "css": ".ds-button-ink{display:inline-flex;align-items:center;min-height:44px;padding:0.45rem 0.95rem;border:2px solid #121212;border-radius:0;background:#121212;color:#ffffff;font:700 0.95rem/1.2 'BIZ UDPGothic',sans-serif;cursor:pointer}.ds-button-ink:hover{background:#e4002b;text-decoration:underline;text-decoration-color:#ffffff;text-decoration-thickness:2px;text-underline-offset:0.2em}.ds-button-ink:focus-visible{outline:3px solid #e4002b;outline-offset:3px}"
+    },
+    {
+      "name": "Red Button",
+      "kind": "button",
+      "refersTo": "button-red",
+      "description": "Saving the watchlist entry; turns ink on hover.",
+      "html": "<button class=\"ds-button-red\">Save changes</button>",
+      "css": ".ds-button-red{display:inline-flex;align-items:center;min-height:44px;padding:0.45rem 0.95rem;border:2px solid #121212;border-radius:0;background:#e4002b;color:#ffffff;font:700 0.95rem/1.2 'BIZ UDPGothic',sans-serif;cursor:pointer}.ds-button-red:hover{background:#121212;text-decoration:underline;text-decoration-color:#ffffff;text-decoration-thickness:2px;text-underline-offset:0.2em}.ds-button-red:focus-visible{outline:3px solid #e4002b;outline-offset:3px}.ds-button-red:disabled{border-style:dashed;cursor:progress}"
+    },
+    {
+      "name": "Filter Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Release status, format and view toggles; pressed chips invert to ink.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">All</button><button class=\"ds-chip\" aria-pressed=\"false\">Releasing <span class=\"ds-chip-count\">3</span></button><button class=\"ds-chip\" aria-pressed=\"false\">Finished <span class=\"ds-chip-count\">152</span></button></div>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:0.3rem}.ds-chip{min-height:32px;padding:0.2rem 0.55rem;border:2px solid #121212;border-radius:0;background:#ffffff;color:#121212;font:700 0.82rem/1.2 'BIZ UDPGothic',sans-serif;cursor:pointer}.ds-chip:hover{text-decoration:underline;text-decoration-color:#e4002b;text-decoration-thickness:2px;text-underline-offset:0.2em}.ds-chip[aria-pressed=\"true\"]{background:#121212;color:#ffffff}.ds-chip:focus-visible{outline:3px solid #e4002b;outline-offset:3px}.ds-chip-count{font-weight:400;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Field with Balloon",
+      "kind": "input",
+      "refersTo": "control",
+      "description": "A square control; when the API refuses it, the border turns red and a balloon carries the message.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Start year from</span><input class=\"ds-control\" aria-invalid=\"true\" value=\"1850\"><span class=\"ds-balloon\">Must be 1900 or later.</span></label>",
+      "css": ".ds-field{display:grid;gap:0.3rem;max-width:18rem;font-family:'BIZ UDPGothic',sans-serif;color:#121212}.ds-field-label{font-size:0.85rem;font-weight:700}.ds-control{min-height:40px;padding:0.35rem 0.6rem;border:2px solid #121212;border-radius:0;background:#ffffff;color:#121212;font:400 0.95rem/1.3 'BIZ UDPGothic',sans-serif}.ds-control:focus-visible{outline:3px solid #e4002b;outline-offset:2px}.ds-control[aria-invalid=\"true\"]{border:3px solid #e4002b}.ds-balloon{position:relative;margin-top:0.45rem;padding:0.45rem 0.65rem;background:#ffffff;border:2px solid #e4002b;border-radius:0.75rem;font-size:0.85rem;font-weight:700;line-height:1.35}.ds-balloon::before,.ds-balloon::after{content:'';position:absolute;left:1.1rem;border-style:solid;border-color:transparent}.ds-balloon::before{top:-10px;border-width:0 9px 10px;border-bottom-color:#e4002b}.ds-balloon::after{top:-7px;left:calc(1.1rem + 3px);border-width:0 6px 7px;border-bottom-color:#ffffff}"
+    },
+    {
+      "name": "Masthead",
+      "kind": "nav",
+      "refersTo": "masthead",
+      "description": "Red strip with logotype, issue badge and nav; current page carries a paper bar.",
+      "html": "<header class=\"ds-masthead\"><a class=\"ds-logo\" href=\"#\">AnimeVerse</a><p class=\"ds-issue\"><span class=\"ds-issue-no\">No. 48</span> 23 November 2026</p><nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\">Universe</a><span aria-hidden=\"true\">·</span><a href=\"#\">Browse</a></nav></header>",
+      "css": ".ds-masthead{display:flex;align-items:center;gap:1.5rem;height:61px;padding:0 12px;background:#e4002b;color:#ffffff;border-bottom:3px solid #121212}.ds-logo{font:400 2.5rem/1 'Dela Gothic One',sans-serif;letter-spacing:-0.02em;color:#ffffff;text-decoration:none}.ds-issue{margin:0;display:flex;gap:0.6rem;align-items:baseline;background:#ffffff;color:#121212;border:2px solid #121212;padding:0.1rem 0.65rem;font:700 0.9rem 'BIZ UDPGothic',sans-serif}.ds-issue-no{font:400 1rem 'Dela Gothic One',sans-serif}.ds-nav{margin-left:auto;display:flex;gap:0.75rem;align-items:center;font:400 1.1rem 'Dela Gothic One',sans-serif}.ds-nav a{color:#ffffff;text-decoration:none;padding:0.4rem 0.15rem 0.25rem;border-bottom:3px solid transparent}.ds-nav a:hover{border-bottom-color:#121212}.ds-nav a[aria-current=\"page\"]{border-bottom-color:#ffffff}.ds-nav a:focus-visible{outline:3px solid #ffffff;outline-offset:3px}"
+    },
+    {
+      "name": "Side Box",
+      "kind": "card",
+      "refersTo": "box-head",
+      "description": "A right-page box with an ink head and count badge; the next-issue variant is red.",
+      "html": "<section class=\"ds-box\"><h2 class=\"ds-box-head\">Airing now <span class=\"ds-box-count\">3</span></h2><ul class=\"ds-box-list\"><li><a href=\"#\">ONE PIECE</a><span class=\"ds-box-meta\">TV · since 1999 · 8.7 / 10</span></li><li><a href=\"#\">Dragon Ball Super: Beerus</a><span class=\"ds-box-meta\">TV · since 2026 · 8.0 / 10</span></li></ul></section><section class=\"ds-box ds-box--next\"><h2 class=\"ds-box-head\">Continue watching <span class=\"ds-box-count\">0</span></h2></section>",
+      "css": ".ds-box{border:3px solid #121212;background:#ffffff;font-family:'BIZ UDPGothic',sans-serif;color:#121212;margin-bottom:12px;max-width:26rem}.ds-box-head{display:flex;justify-content:space-between;align-items:baseline;margin:0;padding:0.35rem 0.7rem;background:#121212;color:#ffffff;font:400 1.2rem/1.25 'Dela Gothic One',sans-serif}.ds-box-count{background:#ffffff;color:#121212;padding:0 0.45rem;font-size:0.95rem;font-variant-numeric:tabular-nums}.ds-box--next{border-color:#e4002b}.ds-box--next .ds-box-head{background:#e4002b}.ds-box-list{list-style:none;margin:0;padding:0.2rem 0.7rem 0.4rem}.ds-box-list li{padding:0.5rem 0;border-bottom:1.5px solid #121212}.ds-box-list li:last-child{border-bottom:0}.ds-box-list a{color:#121212;font-weight:700;text-decoration-color:#e4002b;text-decoration-thickness:2px;text-underline-offset:0.2em}.ds-box-list a:hover{text-decoration-color:#121212}.ds-box-meta{display:block;margin-top:0.15rem;font-size:0.8rem}"
+    },
+    {
+      "name": "Sparkle Star",
+      "kind": "custom",
+      "refersTo": "stock-2",
+      "description": "A map star: stock fill, score as tone-ink dots, ink outline on a paper keyline, watching ring with a red arc.",
+      "html": "<svg class=\"ds-star\" viewBox=\"-30 -30 60 60\" width=\"120\" height=\"120\" role=\"img\" aria-label=\"Star scored 8 of 10, watching\"><defs><pattern id=\"ds-tone\" patternUnits=\"userSpaceOnUse\" width=\"4.6\" height=\"4.6\" patternTransform=\"rotate(45)\"><circle cx=\"2.3\" cy=\"2.3\" r=\"1.6\" fill=\"#946e00\"/></pattern></defs><circle r=\"21\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"4.5\"/><circle r=\"21\" fill=\"none\" stroke=\"#121212\" stroke-width=\"1.6\"/><path d=\"M0 -21A21 21 0 0 1 20 6.5\" fill=\"none\" stroke=\"#e4002b\" stroke-width=\"3.5\"/><path d=\"M0 -18Q4.32 -4.32 18 0Q4.32 4.32 0 18Q-4.32 4.32 -18 0Q-4.32 -4.32 0 -18Z\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"4.5\" stroke-linejoin=\"round\"/><path d=\"M0 -18Q4.32 -4.32 18 0Q4.32 4.32 0 18Q-4.32 4.32 -18 0Q-4.32 -4.32 0 -18Z\" fill=\"#f3e6a0\"/><path d=\"M0 -18Q4.32 -4.32 18 0Q4.32 4.32 0 18Q-4.32 4.32 -18 0Q-4.32 -4.32 0 -18Z\" fill=\"url(#ds-tone)\"/><path d=\"M0 -18Q4.32 -4.32 18 0Q4.32 4.32 0 18Q-4.32 4.32 -18 0Q-4.32 -4.32 0 -18Z\" fill=\"none\" stroke=\"#121212\" stroke-width=\"1.4\" stroke-linejoin=\"round\"/></svg>",
+      "css": ".ds-star{display:block;background-color:#121212;background-image:radial-gradient(circle,#ffffff 30%,transparent 32%);background-size:6px 6px;border:3px solid #121212}"
+    },
+    {
+      "name": "Hanko Stamp",
+      "kind": "custom",
+      "refersTo": "stamp",
+      "description": "Printed in the postcard's stamp box only after the API confirms a save.",
+      "html": "<div class=\"ds-stamp-box\"><div class=\"ds-stamp\"><span class=\"ds-stamp-word\">Updated</span><span class=\"ds-stamp-date\">23 Nov</span></div></div>",
+      "css": ".ds-stamp-box{width:88px;height:88px;border:1.5px dashed #121212;display:grid;place-items:center;background:#ffffff}.ds-stamp{width:76px;height:76px;border-radius:50%;border:3px solid #e4002b;box-shadow:inset 0 0 0 3px #ffffff,inset 0 0 0 4.5px #e4002b;color:#e4002b;display:grid;place-content:center;text-align:center;transform:rotate(-12deg);animation:ds-stamp-in 420ms cubic-bezier(0.16,1,0.3,1) both}.ds-stamp-word{font:400 0.56rem/1 'Dela Gothic One',sans-serif;text-transform:uppercase;white-space:nowrap}.ds-stamp-date{margin-top:0.2rem;font:700 0.7rem/1 'BIZ UDPGothic',sans-serif}@keyframes ds-stamp-in{from{transform:rotate(-12deg) scale(1.6);clip-path:circle(0% at 50% 50%)}to{transform:rotate(-12deg) scale(1);clip-path:circle(75% at 50% 50%)}}@media (prefers-reduced-motion:reduce){.ds-stamp{animation:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Weekly Shōnen Issue",
+    "overview": "AnimeVerse is printed, not rendered. Every page is a page of this week's issue of a shōnen manga magazine: a red masthead strip with the logotype and issue number, ink panels with white gutters, and newsprint stocks that tell the franchises apart. The centre spread on the Universe page is a night sky built entirely from dot screentone, with each franchise as a constellation of four-point sparkle stars under a name plate. Browse is the series index and an anime page is a single series sheet with a reader-survey postcard for the watchlist.\n\nThe system is flat and high contrast. Depth comes from pen weight, gutters and screentone density, never from shadows or grey fills. Copy sits in narration boxes; the API's answers (validation errors, refused requests, missing data) speak in balloons; a confirmed save is a red hanko stamp. Density is a magazine's: compact type, tight gutters, many bordered panels, and every number in tabular figures. The world refuses the dark poster-grid streaming catalogue.\n\nAnime data and cover images come from AniList, credited in the colophon on every page.",
+    "keyCharacteristics": [
+      "Ink `#121212` on paper white, one masthead red, seven franchise newsprint stocks.",
+      "No grey anywhere: every tone is a dot or line screen.",
+      "Pen-and-ink borders (3px panels, 2px controls, 1.5px rules), square corners, white gutters.",
+      "Dela Gothic One for display and big numbers, BIZ UDPGothic for text.",
+      "Speech balloons for the API's voice; a hanko stamp only after the API confirms.",
+      "One authored move (the burst zoom into a constellation); every animation stops under reduced motion."
+    ],
+    "rules": [
+      {
+        "name": "The No-Grey Rule",
+        "body": "There is no grey fill, grey text or grey border anywhere. Any tone is ink or a tone ink laid as dots (score, sky, loading roller, problem panel) or as a 45° line screen (unknown episode total).",
+        "section": "colors"
+      },
+      {
+        "name": "The One Stock Per Franchise Rule",
+        "body": "A franchise always prints on the same stock across the map, the index and the series sheet; a stock never stands for anything but its franchise.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Means Act Rule",
+        "body": "Red is reserved for the masthead, the user's own progress and actions (watching arc, save, stamp, next-issue box) and for errors and focus. It is never a decorative fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Display Numbers Rule",
+        "body": "Scores, counts, the issue number and page positions are set in Dela Gothic One or in tabular figures (`font-variant-numeric: tabular-nums`), so numbers line up like a printed table.",
+        "section": "typography"
+      },
+      {
+        "name": "The Unknown Is Italic Rule",
+        "body": "A missing value is written out (\"No English title\", \"Unscored\", \"No cover image\") in italic or bold text, never left blank or shown as zero.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "Labels and headings are sentence or title case. Uppercase appears only inside the hanko stamp and its \"Stamp here\" placeholder, where it is printed lettering.",
+        "section": "typography"
+      },
+      {
+        "name": "The Gutter Not Shadow Rule",
+        "body": "Anything that sits over the sky or another panel gets a paper keyline or gutter and an ink border, never an offset or blurred shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do build every tone from dots or lines: `--tone-dots` (ink dots, 8px pitch) for decoration, the score screen (4.6 unit pitch, rotated 45°) for scores, a 45° line screen for unknowns.",
+      "Do give each franchise its stock in ascending id order and keep it on every surface.",
+      "Do frame panels with a 3px ink pen and separate them with the 12px white gutter; use 2px for controls and 1.5px for inner rules.",
+      "Do set headings, plates and numbers in Dela Gothic One at weight 400, and all other text in BIZ UDPGothic.",
+      "Do show missing data as words (\"Unscored\", \"No cover image\", \"Format unknown\"), never blank or zero.",
+      "Do put the API's validation messages in a balloon next to the field they belong to.",
+      "Do print the hanko only after the API confirms a save, and animate it only for a fresh save.",
+      "Do use the 3px red outline for keyboard focus, and paper for focus on red or ink grounds.",
+      "Do turn off every animation under `prefers-reduced-motion: reduce`.",
+      "Do credit AniList as the data source on every page."
+    ],
+    "donts": [
+      "Don't use grey in any form: fill, text, border or placeholder.",
+      "Don't use drop shadows or blurred shadows; use a paper gutter and an ink border.",
+      "Don't round panels, buttons, cards, inputs or images; curves belong only to balloons, stamps, rings and tick boxes.",
+      "Don't use red as decoration; it marks the masthead, the user's actions and progress, errors and focus.",
+      "Don't use a franchise stock or tone ink for anything but its franchise.",
+      "Don't lay dot screen under running text; text sits on paper.",
+      "Don't add uppercase labels or small lines above headings; uppercase lives only in the stamp.",
+      "Don't add a second hero motion; the burst zoom is the one authored move.",
+      "Don't load fonts, scripts or images from anywhere but the app itself and AniList's image host."
+    ]
+  }
+}

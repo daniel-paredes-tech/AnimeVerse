@@ -8,6 +8,7 @@ secrets manager), so the code does not change. .env.example lists them all.
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -72,6 +73,31 @@ def load_database_settings() -> DatabaseSettings:
         sslmode=_choice("POSTGRES_SSLMODE", "prefer", SSL_MODES),
         connect_timeout=_positive_int("POSTGRES_CONNECT_TIMEOUT", 10),
     )
+
+
+def load_openapi_path() -> Path:
+    """Where the API contract is (OPENAPI_PATH, default openapi.yaml in the current folder).
+
+    The API serves this file at /v1/openapi.yaml. Raises ConfigError if it doesn't exist.
+    """
+    load_dotenv()
+    path = Path(os.environ.get("OPENAPI_PATH", "openapi.yaml"))
+    if not path.is_file():
+        raise ConfigError(
+            f"The API contract was not found at {path}. Run the command from the project folder, or set OPENAPI_PATH."
+        )
+    return path
+
+
+def load_web_dist() -> Path | None:
+    """The built web UI (WEB_DIST_DIR, default web/dist), or None if it hasn't been built.
+
+    Without it, `animeverse serve` serves the API only; build the UI with
+    `npm run build` in web/.
+    """
+    load_dotenv()
+    path = Path(os.environ.get("WEB_DIST_DIR", "web/dist"))
+    return path if (path / "index.html").is_file() else None
 
 
 def load_log_level() -> str:
