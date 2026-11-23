@@ -1,0 +1,465 @@
+/* Detail: one series page and its reader-survey postcard. */
+
+.sheet {
+  padding-bottom: 2rem;
+}
+
+.sheet__back {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.sheet__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 27rem);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .sheet__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sheet__main {
+  min-width: 0;
+}
+
+.sheet__head {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: var(--pen) solid var(--ink);
+}
+
+.sheet__cover {
+  width: 150px;
+  height: 214px;
+  object-fit: cover;
+  border: var(--pen-thin) solid var(--ink);
+  display: block;
+}
+
+.sheet__cover--none {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  border-style: dashed;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sheet__titles {
+  min-width: 0;
+}
+
+.sheet__franchises {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sheet__franchise {
+  border: var(--pen-thin) solid var(--ink);
+  padding: 0.1rem 0.55rem;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+.sheet__franchise a {
+  font-weight: 400;
+  text-decoration-color: var(--ink);
+  text-decoration-thickness: 1.5px;
+}
+
+.sheet__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.8rem, 3.2vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.sheet__english {
+  margin: 0.4rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.sheet__native {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+}
+
+.sheet__unknown {
+  font-style: italic;
+}
+
+.sheet__score {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.sheet__score-value {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__score-value.sheet__unknown {
+  font-family: var(--font-text);
+  font-weight: 700;
+}
+
+.sheet__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-bottom: var(--pen) solid var(--ink);
+}
+
+.sheet__fact {
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.sheet__fact dt {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sheet__fact dd {
+  margin: 0.1rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.external {
+  margin-left: 0.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  vertical-align: -1px;
+}
+
+.sheet__h2 {
+  margin: 1.5rem 0 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.sheet__synopsis p {
+  max-width: 68ch;
+  margin: 0 0 0.75rem;
+}
+
+/* --- The postcard ----------------------------------------------------------------- */
+
+.postcard {
+  position: sticky;
+  top: var(--gutter);
+  padding: 1.1rem 1.25rem 1.25rem;
+  border: var(--pen) solid var(--ink);
+  background: var(--paper);
+}
+
+/* The card's printed inner frame. */
+.postcard::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1.5px solid var(--red);
+  pointer-events: none;
+}
+
+@media (max-width: 960px) {
+  .postcard {
+    position: relative;
+    top: 0;
+  }
+}
+
+.postcard__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.postcard__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.postcard__state {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.postcard__stamp-box {
+  position: relative;
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border: 1.5px dashed var(--ink);
+  display: grid;
+  place-items: center;
+}
+
+/* The hanko: printed only after the API confirms a save. */
+.stamp {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 3px solid var(--red);
+  box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4.5px var(--red);
+  color: var(--red);
+  display: grid;
+  place-content: center;
+  text-align: center;
+  transform: rotate(-12deg);
+  animation: stamp-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stamp__word {
+  font-family: var(--font-display);
+  /* "UPDATED" must fit inside the inner ring. */
+  font-size: 0.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.stamp__date {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@keyframes stamp-in {
+  from {
+    transform: rotate(-12deg) scale(1.6);
+    clip-path: circle(0% at 50% 50%);
+  }
+  to {
+    transform: rotate(-12deg) scale(1);
+    clip-path: circle(75% at 50% 50%);
+  }
+}
+
+.postcard__notice {
+  min-height: 1.4em;
+  margin: 0.6rem 0 0;
+  font-weight: 700;
+}
+
+.postcard__notice:focus {
+  outline: none;
+}
+
+.postcard__summary {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border: var(--pen-thin) solid var(--red);
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.postcard__summary:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+
+.postcard__summary p,
+.postcard__summary ul {
+  margin: 0.2rem 0 0;
+}
+
+.postcard__summary-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.postcard__form {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 0.9rem;
+}
+
+.survey {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.survey__legend {
+  display: block;
+  margin-bottom: 0.4rem;
+  padding: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.survey__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+}
+
+.survey__options--scale {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+/* Survey tick boxes: real radio buttons, drawn as the card's printed boxes. */
+.tick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 32px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.tick input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.tick__box {
+  width: 20px;
+  height: 20px;
+  border: var(--pen-thin) solid var(--ink);
+  background: var(--paper);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.tick input:checked + .tick__box::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+}
+
+.tick input:focus-visible + .tick__box {
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+
+.tick:hover .tick__box {
+  border-color: var(--red);
+}
+
+.tick--scale {
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.survey--invalid .tick__box {
+  border-color: var(--red);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.stepper__button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: var(--pen-thin) solid var(--ink);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.stepper__button svg {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.stepper__button:hover {
+  background: var(--ink);
+}
+
+.stepper__button:hover svg {
+  stroke: var(--paper);
+}
+
+.stepper__input {
+  width: 6rem;
+  text-align: center;
+}
+
+.stepper__total {
+  margin-left: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.postcard__notes {
+  resize: vertical;
+  min-height: 6rem;
+  line-height: 1.5;
+}
+
+.postcard__count {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.postcard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.button:disabled {
+  cursor: progress;
+  border-style: dashed;
+}
+
+.postcard__confirm {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.85rem;
+  border: var(--pen-thin) solid var(--ink);
+}
+
+.postcard__confirm p {
+  margin: 0 0 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    animation: none;
+  }
+}

@@ -271,6 +271,12 @@
   vector-effect: non-scaling-stroke;
 }
 
+.star__ring-keyline {
+  fill: none;
+  stroke-width: 4.5;
+  vector-effect: non-scaling-stroke;
+}
+
 .star__ring {
   fill: none;
   stroke-width: 1.6;

@@ -112,3 +112,37 @@ export function issueLabel(date: Date): { number: string; date: string } {
     date: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date),
   };
 }
+
+const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const DAY_TIME = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** A contract `date` ("2002-10-03") as "3 October 2002", read as a calendar day (no time zone shift). */
+export function dateLabel(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) return isoDate;
+  return DAY.format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))));
+}
+
+/** A contract `date-time` in the viewer's local time, e.g. "21 November 2026 at 13:24". */
+export function dateTimeLabel(isoDateTime: string): string {
+  const date = new Date(isoDateTime);
+  return Number.isNaN(date.getTime()) ? isoDateTime : DAY_TIME.format(date);
+}
+
+/** The air dates, saying which ends are unknown. */
+export function airDatesLabel(from: string | null, to: string | null): string {
+  if (from === null && to === null) return "Air dates unknown";
+  if (to === null) return `From ${dateLabel(from!)} · end date unknown`;
+  if (from === null) return `Start date unknown · until ${dateLabel(to)}`;
+  return `${dateLabel(from)} to ${dateLabel(to)}`;
+}
+
+export function endYearLabel(year: number | null): string {
+  return year === null ? "Unknown or not ended" : String(year);
+}

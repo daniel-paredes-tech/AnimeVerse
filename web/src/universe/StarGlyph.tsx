@@ -1,5 +1,5 @@
 import type { WatchlistEntry } from "../api/types";
-import { MASTHEAD_RED, PAPER } from "./palette";
+import { INK, MASTHEAD_RED, PAPER } from "./palette";
 import { SCORE_TONE_PITCH, progressArc, sparklePath, toneDotRadius } from "./screentone";
 
 const ALL_STEPS = Array.from({ length: 21 }, (_, i) => i);
@@ -78,7 +78,9 @@ function WatchRing({ r, entry, episodes }: { r: number; entry: WatchlistEntry; e
   }
   return (
     <>
-      <circle r={r} className="star__ring" stroke={PAPER} />
+      {/* Ink on a paper keyline: readable on the dark sky and on a light clearing. */}
+      <circle r={r} className="star__ring-keyline" stroke={PAPER} />
+      <circle r={r} className="star__ring" stroke={INK} />
       {progress}
     </>
   );

@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import { FRANCHISE_STOCKS, MASTHEAD_RED, PAPER } from "./palette";
+import { FRANCHISE_STOCKS, INK, MASTHEAD_RED, PAPER } from "./palette";
 import { progressArc } from "./screentone";
 import { StarGlyph, ToneDefs } from "./StarGlyph";
 
@@ -59,7 +59,8 @@ export function Legend() {
       <p className="legend__item">
         <Key>
           <rect x={-17} y={-17} width={34} height={34} fill={`url(#${idPrefix}-tone-20)`} />
-          <circle r={13} fill="none" stroke={PAPER} strokeWidth={1.5} />
+          <circle r={13} fill="none" stroke={PAPER} strokeWidth={4} />
+          <circle r={13} fill="none" stroke={INK} strokeWidth={1.5} />
           <path d={progressArc(0, 0, 13, 0.4) ?? ""} fill="none" stroke={MASTHEAD_RED} strokeWidth={3} />
           <g>
             <StarGlyph r={9} stock={STOCK} toneStep={16} idPrefix={idPrefix} />
