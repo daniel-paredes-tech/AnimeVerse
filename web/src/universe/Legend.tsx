@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { FRANCHISE_STOCKS, INK, MASTHEAD_RED, PAPER } from "./palette";
 import { progressArc } from "./screentone";
-import { StarGlyph, ToneDefs } from "./StarGlyph";
+import { StarGlyph, ToneDefs, tonePatternId } from "./StarGlyph";
 
 const STOCK = FRANCHISE_STOCKS[1];
 
@@ -20,7 +20,7 @@ export function Legend() {
     <div className="legend" role="note" aria-label="How to read the map">
       <svg width="0" height="0" className="legend__defs" aria-hidden="true">
         <defs>
-          <ToneDefs idPrefix={idPrefix} steps={[10, 16, 20]} />
+          <ToneDefs idPrefix={idPrefix} steps={[10, 16, 20]} stocks={[STOCK, PAPER]} />
         </defs>
       </svg>
       <p className="legend__item">
@@ -58,7 +58,7 @@ export function Legend() {
       </p>
       <p className="legend__item">
         <Key>
-          <rect x={-17} y={-17} width={34} height={34} fill={`url(#${idPrefix}-tone-20)`} />
+          <rect x={-17} y={-17} width={34} height={34} fill={`url(#${tonePatternId(idPrefix, PAPER, 20)})`} />
           <circle r={13} fill="none" stroke={PAPER} strokeWidth={4} />
           <circle r={13} fill="none" stroke={INK} strokeWidth={1.5} />
           <path d={progressArc(0, 0, 13, 0.4) ?? ""} fill="none" stroke={MASTHEAD_RED} strokeWidth={3} />

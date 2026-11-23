@@ -114,19 +114,6 @@ function AnimeSheet({ anime }: { anime: AnimeDetail }) {
               <span className="sheet__cover sheet__cover--none">No cover image</span>
             )}
             <div className="sheet__titles">
-              <ul className="sheet__franchises" aria-label="Franchises">
-                {anime.franchises.length === 0 ? (
-                  <li className="sheet__franchise" style={{ backgroundColor: PAPER }}>
-                    No franchise
-                  </li>
-                ) : (
-                  anime.franchises.map((f) => (
-                    <li key={f.id} className="sheet__franchise" style={{ backgroundColor: stocks.get(f.id) ?? PAPER }}>
-                      <Link to={`/anime?franchise=${f.id}`}>{f.name}</Link>
-                    </li>
-                  ))
-                )}
-              </ul>
               <h1 className="sheet__title" id="anime-title">
                 {anime.title}
               </h1>
@@ -140,13 +127,28 @@ function AnimeSheet({ anime }: { anime: AnimeDetail }) {
               ) : (
                 <p className="sheet__native sheet__unknown">No native title</p>
               )}
-              <div className="sheet__score">
-                <svg viewBox="-20 -20 40 40" width="40" height="40" aria-hidden="true">
-                  <StarGlyph r={17} stock={stock} toneStep={scoreToneStep(anime.score)} idPrefix={TONE_PREFIX} />
-                </svg>
-                <span className={anime.score === null ? "sheet__score-value sheet__unknown" : "sheet__score-value"}>
-                  {anime.score === null ? "Unscored" : `Score ${scoreLabel(anime.score)}`}
-                </span>
+              <div className="sheet__meta">
+                <div className="sheet__score">
+                  <svg viewBox="-20 -20 40 40" width="40" height="40" aria-hidden="true">
+                    <StarGlyph r={17} stock={stock} toneStep={scoreToneStep(anime.score)} idPrefix={TONE_PREFIX} />
+                  </svg>
+                  <span className={anime.score === null ? "sheet__score-value sheet__unknown" : "sheet__score-value"}>
+                    {anime.score === null ? "Unscored" : `Score ${scoreLabel(anime.score)}`}
+                  </span>
+                </div>
+                <ul className="sheet__franchises" aria-label="Franchises">
+                  {anime.franchises.length === 0 ? (
+                    <li className="sheet__franchise" style={{ backgroundColor: PAPER }}>
+                      No franchise
+                    </li>
+                  ) : (
+                    anime.franchises.map((f) => (
+                      <li key={f.id} className="sheet__franchise" style={{ backgroundColor: stocks.get(f.id) ?? PAPER }}>
+                        <Link to={`/anime?franchise=${f.id}`}>{f.name}</Link>
+                      </li>
+                    ))
+                  )}
+                </ul>
               </div>
             </div>
           </header>

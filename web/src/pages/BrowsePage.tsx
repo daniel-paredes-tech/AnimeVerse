@@ -162,8 +162,9 @@ export function BrowsePage() {
       >
         {active.length > 0 ? (
           <p>
-            Remove one of the {active.length === 1 ? "filter" : `${active.length} filters`} above to loosen the search,
-            or clear them all.
+            {active.length === 1
+              ? "Remove the filter above to loosen the search."
+              : "Remove one of the filters above to loosen the search, or clear them all."}
           </p>
         ) : (
           <p>

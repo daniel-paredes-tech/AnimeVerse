@@ -42,11 +42,14 @@ export function toBody(draft: Draft): WatchlistEntryInput {
   };
 }
 
-/** The hanko: printed only once the API has confirmed the save. */
-function Stamp({ created, at }: { created: boolean; at: string }) {
+/**
+ * The hanko. Only data the API has confirmed is stamped: a save made just now lands with
+ * a press (`fresh`); an entry that was already saved is printed still.
+ */
+function Stamp({ word, at, fresh }: { word: string; at: string; fresh: boolean }) {
   return (
-    <div className="stamp" aria-hidden="true">
-      <span className="stamp__word">{created ? "Added" : "Updated"}</span>
+    <div className={`stamp${fresh ? " stamp--fresh" : ""}`} aria-hidden="true">
+      <span className="stamp__word">{word}</span>
       <span className="stamp__date">{new Date(at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
     </div>
   );
@@ -162,8 +165,21 @@ export function WatchlistForm({ anime }: { anime: AnimeDetail }) {
         </div>
         <div className="postcard__stamp-box">
           {notice && notice.kind !== "removed" ? (
-            <Stamp key={notice.at + notice.kind} created={notice.kind === "created"} at={notice.at} />
-          ) : null}
+            <Stamp
+              key={notice.at + notice.kind}
+              word={notice.kind === "created" ? "Added" : "Updated"}
+              at={notice.at}
+              fresh
+            />
+          ) : entry ? (
+            <Stamp word="Saved" at={entry.updated_at} fresh={false} />
+          ) : (
+            <span className="postcard__stamp-label" aria-hidden="true">
+              Stamp
+              <br />
+              here
+            </span>
+          )}
         </div>
       </div>
 

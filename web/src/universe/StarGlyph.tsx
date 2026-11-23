@@ -1,26 +1,45 @@
 import type { WatchlistEntry } from "../api/types";
-import { INK, MASTHEAD_RED, PAPER } from "./palette";
+import { FRANCHISE_STOCKS, INK, MASTHEAD_RED, PAPER, toneInkFor } from "./palette";
 import { SCORE_TONE_PITCH, progressArc, sparklePath, toneDotRadius } from "./screentone";
 
 const ALL_STEPS = Array.from({ length: 21 }, (_, i) => i);
+const ALL_STOCKS: readonly string[] = [...FRANCHISE_STOCKS, PAPER];
 
-/** One dot pattern per score step (half points). Ink on transparent: no grey anywhere. */
-export function ToneDefs({ idPrefix, steps = ALL_STEPS }: { idPrefix: string; steps?: readonly number[] }) {
+/** The id of the dot pattern for one stock and score step. */
+export function tonePatternId(idPrefix: string, stock: string, step: number): string {
+  return `${idPrefix}-tone-${stock.replace("#", "").toLowerCase()}-${step}`;
+}
+
+/**
+ * One dot pattern per stock and score step (half points). Each franchise's dots are
+ * printed in its stock's deep shade (ink on plain paper): a screen, never a grey fill.
+ */
+export function ToneDefs({
+  idPrefix,
+  steps = ALL_STEPS,
+  stocks = ALL_STOCKS,
+}: {
+  idPrefix: string;
+  steps?: readonly number[];
+  stocks?: readonly string[];
+}) {
   const pitch = SCORE_TONE_PITCH;
   return (
     <>
-      {steps.map((step) => (
-        <pattern
-          key={step}
-          id={`${idPrefix}-tone-${step}`}
-          patternUnits="userSpaceOnUse"
-          width={pitch}
-          height={pitch}
-          patternTransform="rotate(45)"
-        >
-          {step > 0 ? <circle cx={pitch / 2} cy={pitch / 2} r={toneDotRadius(step)} className="ink-fill" /> : null}
-        </pattern>
-      ))}
+      {stocks.flatMap((stock) =>
+        steps.map((step) => (
+          <pattern
+            key={`${stock}-${step}`}
+            id={tonePatternId(idPrefix, stock, step)}
+            patternUnits="userSpaceOnUse"
+            width={pitch}
+            height={pitch}
+            patternTransform="rotate(45)"
+          >
+            {step > 0 ? <circle cx={pitch / 2} cy={pitch / 2} r={toneDotRadius(step)} fill={toneInkFor(stock)} /> : null}
+          </pattern>
+        )),
+      )}
     </>
   );
 }
@@ -50,7 +69,7 @@ export function StarGlyph({ r, stock, toneStep, idPrefix, dim = false, entry = n
         <>
           <path d={d} className="star__keyline" />
           <path d={d} fill={stock} className="star__body" />
-          {toneStep !== null && toneStep > 0 ? <path d={d} fill={`url(#${idPrefix}-tone-${toneStep})`} /> : null}
+          {toneStep !== null && toneStep > 0 ? <path d={d} fill={`url(#${tonePatternId(idPrefix, stock, toneStep)})`} /> : null}
           <path d={d} className="star__outline" />
         </>
       )}

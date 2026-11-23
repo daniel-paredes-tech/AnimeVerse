@@ -5,7 +5,6 @@ import type { AnimeListQuery, AnimeSummary } from "../api/types";
 import { Empty, Loading, ProblemView } from "../components/states";
 import { formatLabel, progressLabel, scoreLabel, startYearLabel } from "../lib/labels";
 
-const BOX_SIZE = 5;
 
 interface BoxProps {
   id: string;
@@ -13,12 +12,14 @@ interface BoxProps {
   query: AnimeListQuery;
   browseHref: string;
   variant?: "next-issue";
+  /** How many rows the box lists (the rest are one "All N" link away). */
+  size: number;
   empty: { title: string; body: ReactNode; action?: ReactNode };
   meta: (anime: AnimeSummary) => ReactNode;
 }
 
-function SideBox({ id, title, query, browseHref, variant, empty, meta }: BoxProps) {
-  const page = useAnimePage({ ...query, page_size: BOX_SIZE });
+function SideBox({ id, title, query, browseHref, variant, size, empty, meta }: BoxProps) {
+  const page = useAnimePage({ ...query, page_size: size });
   const total = page.data?.meta.total_items;
   return (
     <section className={`side-box${variant ? ` side-box--${variant}` : ""}`} aria-labelledby={id}>
@@ -86,6 +87,7 @@ export function SideColumn() {
       <SideBox
         id="side-airing"
         title="Airing now"
+        size={3}
         query={{ status: "RELEASING", sort: "-popularity" }}
         browseHref="/anime?status=RELEASING"
         meta={(a) => `${formatLabel(a.format)} · since ${startYearLabel(a.start_year)} · ${scoreLabel(a.score)}`}
@@ -98,6 +100,7 @@ export function SideColumn() {
       <SideBox
         id="side-coming"
         title="Coming"
+        size={3}
         query={{ status: "NOT_YET_RELEASED", sort: "start_year" }}
         browseHref="/anime?status=NOT_YET_RELEASED"
         meta={(a) => `${formatLabel(a.format)} · ${a.start_year === null ? "start year unknown" : `starts ${a.start_year}`}`}
@@ -110,6 +113,7 @@ export function SideColumn() {
       <SideBox
         id="side-watching"
         title="Continue watching"
+        size={5}
         variant="next-issue"
         query={{ watchlist_status: "watching", sort: "-popularity" }}
         browseHref="/anime?watchlist_status=watching"

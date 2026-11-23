@@ -31,9 +31,8 @@ export function ResultCard({ anime, stocks }: ResultCardProps) {
   return (
     <li className="entry">
       <article aria-labelledby={titleId}>
-        <p className="entry__band" style={{ backgroundColor: stock }}>
-          {franchiseNames(anime)}
-        </p>
+        {/* The franchise's stock as a printed edge: colour only, no label above the title. */}
+        <div className="entry__edge" style={{ backgroundColor: stock }} aria-hidden="true" />
         <div className="entry__body">
           {anime.image_url ? (
             <img className="entry__cover" src={anime.image_url} alt="" width={84} height={120} loading="lazy" />
@@ -50,6 +49,10 @@ export function ResultCard({ anime, stocks }: ResultCardProps) {
               {anime.title_english ?? "No English title"}
             </p>
             <dl className="entry__facts">
+              <div className="entry__fact--wide">
+                <dt>Franchise</dt>
+                <dd>{franchiseNames(anime)}</dd>
+              </div>
               <div>
                 <dt>Format</dt>
                 <dd>{anime.format === null ? "Unknown" : formatLabel(anime.format)}</dd>

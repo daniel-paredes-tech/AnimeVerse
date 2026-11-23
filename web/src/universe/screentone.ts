@@ -5,7 +5,7 @@ import { hash01, type Box } from "./layout";
 /** Distance between the dots of a star's score tone, in map units. */
 export const SCORE_TONE_PITCH = 4.6;
 /** Coverage of a perfect 10 (dots almost touching, the stock still shows through). */
-const MAX_SCORE_COVERAGE = 0.56;
+const MAX_SCORE_COVERAGE = 0.48;
 
 /**
  * A score (0–10) as a tone step: half points, 0..20. `null` stays `null`: an unscored

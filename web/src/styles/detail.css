@@ -55,9 +55,17 @@
   min-width: 0;
 }
 
+.sheet__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
 .sheet__franchises {
   list-style: none;
-  margin: 0 0 0.6rem;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -106,7 +114,6 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
 }
 
 .sheet__score-value {
@@ -232,15 +239,20 @@
   place-content: center;
   text-align: center;
   transform: rotate(-12deg);
+}
+
+/* Only a save the API has just confirmed lands with a press. */
+.stamp--fresh {
   animation: stamp-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .stamp__word {
   font-family: var(--font-display);
-  /* "UPDATED" must fit inside the inner ring. */
-  font-size: 0.6rem;
+  /* The longest word, "UPDATED", must sit inside the inner ring. */
+  font-size: 0.56rem;
   line-height: 1;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .stamp__date {
@@ -324,7 +336,7 @@
 .survey__options--scale {
   flex-wrap: nowrap;
   justify-content: space-between;
-  gap: 0.25rem;
+  gap: 0.1rem;
 }
 
 /* Survey tick boxes: real radio buttons, drawn as the card's printed boxes. */
@@ -334,8 +346,16 @@
   align-items: center;
   gap: 0.4rem;
   min-height: 32px;
+  padding: 0.1rem 0.55rem 0.1rem 0.3rem;
+  border: var(--pen-thin) solid transparent;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.95rem;
+}
+
+/* Single choice, as on a printed survey: the chosen answer is circled in ink. */
+.tick:has(input:checked) {
+  border-color: var(--ink);
 }
 
 .tick input {
@@ -346,9 +366,10 @@
 }
 
 .tick__box {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: var(--pen-thin) solid var(--ink);
+  border-radius: 50%;
   background: var(--paper);
   display: grid;
   place-items: center;
@@ -357,8 +378,9 @@
 
 .tick input:checked + .tick__box::after {
   content: "";
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--ink);
 }
 
@@ -375,6 +397,10 @@
   flex-direction: column;
   gap: 0.15rem;
   min-width: 1.5rem;
+  /* The ring around a stacked mark and number is a rounded box, so its corners clear
+     the widest label, "None". */
+  padding: 0.25rem 0.3rem 0.3rem;
+  border-radius: 0.6rem;
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
 }
@@ -417,6 +443,16 @@
 .stepper__input {
   width: 6rem;
   text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* The −/+ buttons are the stepper; the browser's own spin arrows would double it. */
+.stepper__input::-webkit-inner-spin-button,
+.stepper__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
 }
 
 .stepper__total {
@@ -458,8 +494,17 @@
   margin: 0 0 0.6rem;
 }
 
+.postcard__stamp-label {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .stamp {
+  .stamp--fresh {
     animation: none;
   }
 }

@@ -84,8 +84,8 @@ export function UniversePage() {
         </div>
         {hasFilters(filters) ? (
           <p className="filter-note" aria-live="polite">
-            {matching.length} of {anime.data.length} anime match.{" "}
-            {view === "map" ? "The others are drawn as outlines." : null}{" "}
+            {/* The list's caption already gives the count; the map needs it said here. */}
+            {view === "map" ? `${matching.length} of ${anime.data.length} anime match. The others are drawn as outlines. ` : null}
             <button type="button" className="link-button" onClick={() => setFilters(NO_FILTERS)}>
               Clear filters
             </button>
