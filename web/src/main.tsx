@@ -5,6 +5,7 @@ import "@fontsource/biz-udpgothic/400.css";
 import "@fontsource/biz-udpgothic/700.css";
 import "./styles/global.css";
 import "./styles/universe.css";
+import "./styles/browse.css";
 import { App } from "./App";
 
 const root = document.getElementById("root");

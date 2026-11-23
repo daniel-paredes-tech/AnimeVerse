@@ -1,4 +1,4 @@
-import { QueryClient, useQuery } from "@tanstack/react-query";
+import { QueryClient, keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, fetchAllAnime, fetchAnimePage, unwrap } from "./client";
 import { ApiError } from "./errors";
 import type { AnimeListQuery } from "./types";
@@ -40,11 +40,15 @@ export function useFranchises() {
   });
 }
 
-/** One page of `GET /v1/anime`, with any filters, sort and page. */
-export function useAnimePage(query: AnimeListQuery) {
+/**
+ * One page of `GET /v1/anime`, with any filters, sort and page. With `keepPrevious`, the
+ * last page stays on screen while the next one loads (`isPlaceholderData` is then true).
+ */
+export function useAnimePage(query: AnimeListQuery, options: { keepPrevious?: boolean } = {}) {
   return useQuery({
     queryKey: queryKeys.animePage(query),
     queryFn: ({ signal }) => fetchAnimePage(query, signal),
+    placeholderData: options.keepPrevious ? keepPreviousData : undefined,
   });
 }
 
