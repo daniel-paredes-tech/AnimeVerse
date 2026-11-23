@@ -63,6 +63,23 @@ jobs:
       - name: Tests
         run: python -m pytest
 
+  # openapi.yaml is the API's contract (ADR 0010): it must lint clean before
+  # anything else trusts it. redocly.yaml uses "recommended-strict", so a
+  # warning fails too. The Python job above checks the server against it
+  # (route parity + Schemathesis, inside pytest).
+  contract:
+    if: github.event_name != 'schedule'
+    name: API contract (Redocly lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"  # the LTS release, as on the development machine
+      - name: Lint openapi.yaml
+        # Exact version, so the rules can't change under us between runs.
+        run: npx --yes @redocly/cli@2.82.0 lint openapi.yaml
+
   image:
     if: github.event_name != 'schedule'
     name: Container image builds
