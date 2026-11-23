@@ -246,7 +246,8 @@ paths:
           content:
             application/yaml:
               schema:
-                type: string
+                description: The OpenAPI document, a YAML mapping (what you are reading now).
+                type: object
         '400':
           $ref: '#/components/responses/InvalidRequest'
 
@@ -265,11 +266,12 @@ components:
     Query:
       name: q
       in: query
-      description: Text to find in any title (romaji, English or Japanese), ignoring case.
+      description: Text to find in any title (romaji, English or Japanese), ignoring case. Must not contain NUL characters.
       schema:
         type: string
         minLength: 1
         maxLength: 100
+        pattern: '^[^\u0000]*$'
       example: shippuden
     FranchiseFilter:
       name: franchise
@@ -624,7 +626,7 @@ components:
         self:
           type: string
           format: uri-reference
-          examples: [/v1/anime?page=2&page_size=24&sort=-popularity]
+          examples: ['/v1/anime?page=2&page_size=24&sort=-popularity']
         next:
           description: The next page. `null` on the last page.
           type: [string, 'null']
@@ -700,9 +702,10 @@ components:
           maximum: 10
           examples: [9]
         notes:
-          description: Free notes, up to 1000 characters. `null` (or blank) for none.
+          description: Free notes, up to 1000 characters, without NUL characters. `null` (or blank) for none.
           type: [string, 'null']
           maxLength: 1000
+          pattern: '^[^\u0000]*$'
           examples: [Rewatch the Chunin exam arc.]
 
     WatchlistEntry:
@@ -797,9 +800,9 @@ components:
       required: [location, field, code, message]
       properties:
         location:
-          description: Where the field is.
+          description: Where the field is (`header` for a refused header, e.g. a `Host` that isn't localhost).
           type: string
-          enum: [body, query, path]
+          enum: [body, query, path, header]
         field:
           description: |
             The field's name, e.g. `episodes_watched` or `page_size`. Nested fields are
@@ -811,8 +814,8 @@ components:
           description: |
             Machine-readable reason, stable across versions. Rule codes are listed in
             `putWatchlistEntry`; the others include `required`, `invalid_type`,
-            `too_small`, `too_large`, `too_long`, `not_allowed` (unknown value or field)
-            and `invalid_json`. Clients must accept unknown codes.
+            `too_small`, `too_large`, `too_long`, `not_allowed` (unknown value or field),
+            `invalid_characters` and `invalid_json`. Clients must accept unknown codes.
           type: string
           examples: [exceeds_episodes]
         message:
