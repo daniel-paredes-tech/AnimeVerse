@@ -9,18 +9,9 @@ from animeverse.domain.watchlist import WatchlistEntry, WatchStatus
 from animeverse.infrastructure.postgres.connection import connect
 from animeverse.infrastructure.postgres.store import (
     PostgresCatalogQuery,
-    PostgresCatalogReader,
     PostgresCatalogStore,
     PostgresWatchlistStore,
 )
-
-
-def test_unreachable_database_becomes_store_unavailable():
-    def refuse() -> psycopg.Connection:
-        raise psycopg.OperationalError("connection refused")
-
-    with pytest.raises(StoreUnavailable, match="connection refused"):
-        PostgresCatalogReader(refuse).anime_by_franchise()
 
 
 def test_lost_connection_becomes_store_unavailable(test_db_settings):

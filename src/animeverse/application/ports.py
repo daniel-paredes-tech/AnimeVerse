@@ -2,7 +2,7 @@
 
 A port says what the application needs, not how it is done. Infrastructure
 provides the implementations (adapters): AniList for AnimeSource, PostgreSQL
-for CatalogStore, CatalogReader, CatalogQuery and WatchlistStore. Tests use
+for CatalogStore, CatalogQuery and WatchlistStore. Tests use
 in-memory ones.
 
 Every port lists the errors it may raise. Adapters translate their own
@@ -95,16 +95,6 @@ class CatalogStore(Protocol):
         """A unit of work: committed when the block ends normally, undone if it raises.
 
         Raises StoreUnavailable if the store cannot be used.
-        """
-        ...
-
-
-class CatalogReader(Protocol):
-    def anime_by_franchise(self) -> dict[str, list[Anime]]:
-        """Every franchise (alphabetical) with its anime (most popular first).
-
-        Franchises without anime are included with an empty list.
-        Raises StoreUnavailable.
         """
         ...
 
@@ -249,7 +239,6 @@ __all__ = [
     "AnimeSource",
     "CatalogAnime",
     "CatalogQuery",
-    "CatalogReader",
     "CatalogSession",
     "CatalogStore",
     "FranchiseCount",

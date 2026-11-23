@@ -60,7 +60,7 @@ class _State:
 
 
 class InMemoryCatalogStore:
-    """Every storage port (CatalogStore, CatalogReader, CatalogQuery, WatchlistStore) kept in dicts.
+    """Every storage port (CatalogStore, CatalogQuery, WatchlistStore) kept in dicts.
 
     Sessions have real commit/rollback behaviour.
     """
@@ -77,16 +77,6 @@ class InMemoryCatalogStore:
         session = _InMemorySession(copy.deepcopy(self.committed), self.fail_after_saves)
         yield session  # if the block raises, the working copy is simply dropped (rollback)
         self.committed = session.state  # commit
-
-    def anime_by_franchise(self) -> dict[str, list[Anime]]:
-        if self.unavailable:
-            raise StoreUnavailable("in-memory store is down")
-        result: dict[str, list[Anime]] = {}
-        for name, (franchise_id, _) in sorted(self.committed.franchises.items()):
-            members = [self.committed.anime[a] for f, a in self.committed.links if f == franchise_id]
-            members.sort(key=lambda a: (a.popularity is None, -(a.popularity or 0), a.title))
-            result[name] = members
-        return result
 
     # --- Test helpers ---------------------------------------------------------------
 

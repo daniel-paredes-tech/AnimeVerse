@@ -1,6 +1,6 @@
 """The storage ports, implemented with PostgreSQL.
 
-    CatalogStore, CatalogReader  (the importer and the old page)   SQL in repository.py
+    CatalogStore                 (the importer)                    SQL in repository.py
     CatalogQuery                 (browsing, for the API)            SQL in catalog_queries.py
     WatchlistStore               (the user's watchlist)             SQL in watchlist_repository.py
 
@@ -72,20 +72,6 @@ class PostgresCatalogSession:
         except psycopg.Error as exc:
             raise StoreUnavailable(_first_line(exc)) from exc
         return SavedMember(created=saved.created, newly_linked=newly_linked)
-
-
-class PostgresCatalogReader:
-    """CatalogReader that opens a fresh connection for every read (fine for a local page)."""
-
-    def __init__(self, connect: Callable[[], psycopg.Connection]) -> None:
-        self._connect = connect
-
-    def anime_by_franchise(self) -> dict[str, list[Anime]]:
-        try:
-            with self._connect() as conn:
-                return repository.list_anime_by_franchise(conn)
-        except psycopg.Error as exc:
-            raise StoreUnavailable(_first_line(exc)) from exc
 
 
 class PostgresCatalogQuery:
