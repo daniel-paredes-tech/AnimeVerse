@@ -23,6 +23,7 @@ def env(monkeypatch):
         "POSTGRES_CONNECT_TIMEOUT",
         "LOG_LEVEL",
         "OPENAPI_PATH",
+        "WEB_DIST_DIR",
     ]:
         monkeypatch.delenv(name, raising=False)
     for name, value in VALID_ENV.items():
@@ -98,3 +99,12 @@ def test_openapi_path_can_be_set_and_must_exist(env, tmp_path):
     env.setenv("OPENAPI_PATH", str(tmp_path / "missing.yaml"))
     with pytest.raises(config.ConfigError, match="not found"):
         config.load_openapi_path()
+
+
+def test_web_dist_is_used_only_once_built(env, tmp_path):
+    env.setenv("WEB_DIST_DIR", str(tmp_path / "dist"))
+    assert config.load_web_dist() is None  # not built yet: the API is served alone
+
+    (tmp_path / "dist").mkdir()
+    (tmp_path / "dist" / "index.html").write_text("<!doctype html>")
+    assert config.load_web_dist() == tmp_path / "dist"

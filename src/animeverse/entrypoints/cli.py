@@ -2,7 +2,7 @@
 
     animeverse migrate           bring the database schema up to date (run it first)
     animeverse import            import every configured franchise from AniList
-    animeverse serve [--open]    the REST API at http://localhost:8000/v1/ (this computer only)
+    animeverse serve [--open]    the web UI and REST API at http://localhost:8000 (this computer only)
 
 This is the only module that chooses concrete implementations: AniList as
 the data source, PostgreSQL as the store. Swapping either one (another API,
@@ -30,6 +30,7 @@ from animeverse.config.settings import (
     load_database_settings,
     load_log_level,
     load_openapi_path,
+    load_web_dist,
 )
 from animeverse.entrypoints.api.app import create_app
 from animeverse.entrypoints.api.server import DEFAULT_PORT, serve
@@ -54,9 +55,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("migrate", help="bring the database schema up to date")
     commands.add_parser("import", help="import every configured franchise from AniList")
-    serve_parser = commands.add_parser("serve", help="the REST API, on this computer only")
+    serve_parser = commands.add_parser("serve", help="the web UI and REST API, on this computer only")
     serve_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port to use (default {DEFAULT_PORT})")
-    serve_parser.add_argument("--open", action="store_true", help="open the API in your default browser")
+    serve_parser.add_argument("--open", action="store_true", help="open it in your default browser")
     args = parser.parse_args(argv)
 
     logging.basicConfig(format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
@@ -100,9 +101,14 @@ def run_serve(settings: DatabaseSettings, port: int, open_browser: bool) -> int:
     def open_connection() -> psycopg.Connection:
         return connect(settings)
 
+    web_dist = load_web_dist()
+    if web_dist is None:
+        logger.info("No built web UI found (run `npm run build` in web/): serving the API only.")
+
     query = PostgresCatalogQuery(open_connection)
-    app = create_app(BrowseCatalog(query), ManageWatchlist(query, PostgresWatchlistStore(open_connection)), contract)
-    return serve(app, port=port, open_browser=open_browser)
+    watchlist = ManageWatchlist(query, PostgresWatchlistStore(open_connection))
+    app = create_app(BrowseCatalog(query), watchlist, contract, web_dist=web_dist)
+    return serve(app, port=port, open_browser=open_browser, has_ui=web_dist is not None)
 
 
 def run_import(settings: DatabaseSettings) -> int:

@@ -89,6 +89,17 @@ def load_openapi_path() -> Path:
     return path
 
 
+def load_web_dist() -> Path | None:
+    """The built web UI (WEB_DIST_DIR, default web/dist), or None if it hasn't been built.
+
+    Without it, `animeverse serve` serves the API only; build the UI with
+    `npm run build` in web/.
+    """
+    load_dotenv()
+    path = Path(os.environ.get("WEB_DIST_DIR", "web/dist"))
+    return path if (path / "index.html").is_file() else None
+
+
 def load_log_level() -> str:
     """The logging level, from LOG_LEVEL (default INFO)."""
     load_dotenv()
