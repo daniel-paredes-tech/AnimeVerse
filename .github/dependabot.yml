@@ -1,0 +1,47 @@
+# Dependabot opens pull requests that update our pinned versions, so they don't go stale.
+# CI checks every one of those pull requests; merge one only when its checks are green.
+#
+# Every source is checked once a week. Minor and patch updates are grouped into one
+# pull request per source. Major updates may break things, so each comes alone, to
+# read its changelog first.
+#
+# PostgreSQL (postgres:18-alpine in docker-compose.yml and ci.yml) is left out on
+# purpose: a new major version can't read the old version's data without a manual
+# migration, so that upgrade is a deliberate decision.
+
+version: 2
+
+updates:
+  - package-ecosystem: pip # pyproject.toml: the app and its [dev] tools
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      python-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm # the web UI
+    directory: "/web"
+    schedule:
+      interval: weekly
+    groups:
+      web-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions # the actions used in .github/workflows/
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: docker # the base image in the Dockerfile
+    directory: "/"
+    schedule:
+      interval: weekly
+    ignore:
+      # Only 3.14.x patches. Moving to a new Python version also changes the CI
+      # matrix, so it is a deliberate decision.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

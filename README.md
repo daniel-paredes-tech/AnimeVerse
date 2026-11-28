@@ -134,6 +134,7 @@ cd web && npm run gen:api && npm run typecheck && npm test && npm run build   # 
 ```
 
 GitHub Actions runs all of them on every push, on Python 3.11 and 3.14, and builds the container image.
+Every version is pinned exactly; Dependabot (`.github/dependabot.yml`) opens weekly pull requests to update them, and CI checks each one.
 
 - **Unit tests** check the import logic with in-memory fakes: no network, no database.
 - **Contract tests** run the same checks against the in-memory store and the real PostgreSQL store, which proves the fake behaves like the real thing.
