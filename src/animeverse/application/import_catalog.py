@@ -6,8 +6,9 @@ For each franchise:
     3. save franchise, anime and links           (CatalogStore: ONE unit of work, all or nothing)
 
 Failure handling:
-- The source fails for a franchise: nothing is written for it, it is
-  reported as failed, and the next franchise runs.
+- The source fails for a franchise, or its rule cannot decide membership
+  (MembershipUndecidable): nothing is written for it, it is reported as
+  failed, and the next franchise runs.
 - The store refuses one anime: only that anime is skipped and reported;
   the rest of the franchise is still saved.
 - The store fails as a whole during a franchise: that franchise is undone,
@@ -33,7 +34,7 @@ from animeverse.application.ports import (
     SourceUnavailable,
     StoreUnavailable,
 )
-from animeverse.domain.membership import FranchiseDefinition
+from animeverse.domain.membership import FranchiseDefinition, MembershipUndecidable
 
 logger = logging.getLogger(__name__)
 
@@ -103,11 +104,13 @@ class ImportCatalog:
         report.rejected = result.rejected
 
         # 2. Keep only the anime that belong to this franchise.
-        members = []
+        try:
+            members = definition.rule.select_members(result.anime, result.relations)
+        except MembershipUndecidable as exc:
+            return _fail(report, f"membership: {exc}")
+        member_ids = {anime.anilist_id for anime in members}
         for anime in result.anime:
-            if definition.rule.includes(anime):
-                members.append(anime)
-            else:
+            if anime.anilist_id not in member_ids:
                 report.excluded.append(ExcludedAnime(anime.anilist_id, anime.title))
                 logger.info(
                     "%s: excluded %r (%d), not part of the franchise", definition.name, anime.title, anime.anilist_id

@@ -6,13 +6,13 @@ fakes; these check that the pieces really fit together. Made-up data only.
 
 from animeverse.application.import_catalog import ImportCatalog
 from animeverse.application.ports import SearchResult
-from animeverse.config.franchises import by_title
+from animeverse.config.franchises import by_relations
 from animeverse.domain.models import Anime
 from animeverse.infrastructure.postgres.connection import connect
 from animeverse.infrastructure.postgres.store import PostgresCatalogStore
 from tests.fakes import FakeSource
 
-NARUTO = by_title("Naruto", search="Naruto", match=("naruto",))
+NARUTO = by_relations("Naruto", search="Naruto", main_anilist_id=900001)
 RESULTS = SearchResult(
     anime=[
         Anime(anilist_id=900001, title="NARUTO"),
@@ -20,6 +20,7 @@ RESULTS = SearchResult(
         Anime(anilist_id=900003, title="Onigiri"),
     ],
     rejected=[],
+    relations={900001: frozenset({900002}), 900002: frozenset(), 900003: frozenset()},  # Onigiri: unrelated
 )
 
 

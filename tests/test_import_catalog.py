@@ -5,12 +5,12 @@ All anime below are made-up test data.
 
 from animeverse.application.import_catalog import ImportCatalog
 from animeverse.application.ports import Rejection, SearchResult, SourceUnavailable
-from animeverse.config.franchises import by_title
+from animeverse.config.franchises import by_relations
 from animeverse.domain.models import Anime
 from tests.fakes import FakeSource, InMemoryCatalogStore
 
-NARUTO = by_title("Naruto", search="Naruto", match=("naruto",))
-TITAN = by_title("Attack on Titan", search="Attack on Titan", match=("attack on titan", "shingeki no kyojin"))
+NARUTO = by_relations("Naruto", search="Naruto", main_anilist_id=900001)
+TITAN = by_relations("Attack on Titan", search="Attack on Titan", main_anilist_id=900010)
 
 
 def naruto_results() -> SearchResult:
@@ -21,11 +21,23 @@ def naruto_results() -> SearchResult:
             Anime(anilist_id=900003, title="Onigiri", title_english="Onigiri"),  # will be excluded
         ],
         rejected=[Rejection(position=3, source_id=None, reason="'id' is missing")],
+        relations={
+            900001: frozenset({900002, 800001}),  # 800001: the manga, not a search result
+            900002: frozenset({900001}),
+            900003: frozenset(),  # Onigiri: unrelated
+        },
     )
 
 
 def titan_results() -> SearchResult:
-    return SearchResult(anime=[Anime(anilist_id=900010, title="Shingeki no Kyojin")], rejected=[])
+    return SearchResult(
+        anime=[Anime(anilist_id=900010, title="Shingeki no Kyojin")],
+        rejected=[],
+        relations={900010: frozenset({800010})},
+    )
+
+
+RELATED = {900001: frozenset({900002}), 900002: frozenset({900001})}
 
 
 def stored_ids(store: InMemoryCatalogStore) -> list[int]:
@@ -98,9 +110,21 @@ def test_refused_anime_does_not_stop_the_franchise():
     good = Anime(anilist_id=900002, title="NARUTO: Shippuuden")
     store = InMemoryCatalogStore()
 
-    report = ImportCatalog(FakeSource({"Naruto": SearchResult([bad, good], [])}), store).import_franchise(NARUTO)
+    source = FakeSource({"Naruto": SearchResult([bad, good], [], RELATED)})
+
+    report = ImportCatalog(source, store).import_franchise(NARUTO)
 
     assert not report.failed
     assert [u.anilist_id for u in report.unsaved] == [900001]
     assert (report.new, report.refreshed, report.new_links) == (1, 0, 1)
     assert stored_ids(store) == [900002]
+
+
+def test_undecidable_membership_fails_the_franchise_and_saves_nothing():
+    without_main = SearchResult([Anime(anilist_id=900002, title="NARUTO: Shippuuden")], [], RELATED)
+    store = InMemoryCatalogStore()
+
+    report = ImportCatalog(FakeSource({"Naruto": without_main}), store).import_franchise(NARUTO)
+
+    assert report.failed and "membership" in (report.error or "")
+    assert store.committed.franchises == {} and stored_ids(store) == []
