@@ -45,7 +45,8 @@ HEADERS = {
     "User-Agent": "AnimeVerse/0.1 (educational project)",
 }
 
-# Only the fields approved for storage. The search text and page number are
+# The fields approved for storage, plus the ids of related media (used only to
+# decide franchise membership, never stored). The search text and page number are
 # GraphQL variables, never pasted into the query string.
 SEARCH_ANIME_QUERY = f"""
 query ($search: String, $page: Int) {{
@@ -65,6 +66,7 @@ query ($search: String, $page: Int) {{
       description(asHtml: false)
       coverImage {{ large }}
       siteUrl
+      relations {{ pageInfo {{ hasNextPage }} edges {{ node {{ id }} }} }}
     }}
   }}
 }}

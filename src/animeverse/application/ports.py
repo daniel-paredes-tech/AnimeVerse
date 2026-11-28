@@ -10,8 +10,9 @@ errors (httpx, psycopg...) into these, so no library error crosses a boundary.
 """
 
 import math
+from collections.abc import Mapping
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -54,6 +55,9 @@ class Rejection:
 class SearchResult:
     anime: list[Anime]  # valid results, in the source's order
     rejected: list[Rejection]  # malformed results; never stop the others
+    # Source id of each valid result -> source ids of the media it relates to (sequels,
+    # spin-offs, its manga...). Used to decide franchise membership; never stored.
+    relations: Mapping[int, frozenset[int]] = field(default_factory=dict)
 
     @property
     def fetched(self) -> int:

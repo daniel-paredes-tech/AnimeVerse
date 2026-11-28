@@ -257,3 +257,67 @@ def test_empty_list_gives_empty_result():
     result = parse_anime_list([])
 
     assert result.anime == [] and result.rejected == []
+
+
+# --- Relations (used to decide franchise membership, never stored) -------------
+
+
+def with_relations(edges, has_next_page=False, **overrides):
+    return minimal(relations={"pageInfo": {"hasNextPage": has_next_page}, "edges": edges}, **overrides)
+
+
+def test_relations_are_parsed_into_related_ids():
+    item = with_relations([{"node": {"id": 900002}}, {"node": {"id": 900003}}])
+
+    assert parse_anime_list([item]).relations == {900001: frozenset({900002, 900003})}
+
+
+@pytest.mark.parametrize("item", [minimal(), minimal(relations=None)])
+def test_missing_or_null_relations_become_empty_without_warning(item, caplog):
+    with caplog.at_level(logging.WARNING):
+        result = parse_anime_list([item])
+
+    assert result.relations == {900001: frozenset()}
+    assert caplog.records == []
+
+
+@pytest.mark.parametrize(
+    "edges",
+    [
+        [{"node": {"id": "900002"}}],  # text, not a number
+        [{"node": {"id": -4}}],
+        [{"node": {"id": True}}],
+        [{"node": None}],
+        [None],
+        "not a list",
+    ],
+)
+def test_malformed_relation_edges_are_skipped_with_a_warning(edges, caplog):
+    with caplog.at_level(logging.WARNING):
+        result = parse_anime_list([with_relations(edges)])
+
+    assert [a.anilist_id for a in result.anime] == [900001]  # the anime itself is still valid
+    assert result.relations == {900001: frozenset()}
+    assert len(caplog.records) == 1
+
+
+def test_good_edges_are_kept_next_to_a_malformed_one():
+    item = with_relations([{"node": {"id": 900002}}, {"node": None}])
+
+    assert parse_anime_list([item]).relations == {900001: frozenset({900002})}
+
+
+def test_paginated_relations_are_kept_with_a_warning(caplog):
+    with caplog.at_level(logging.WARNING):
+        result = parse_anime_list([with_relations([{"node": {"id": 900002}}], has_next_page=True)])
+
+    assert result.relations == {900001: frozenset({900002})}
+    assert "more relations" in caplog.text
+
+
+def test_rejected_items_have_no_relations_entry():
+    bad = {"id": 900005, "relations": {"edges": [{"node": {"id": 900001}}]}}  # no title: rejected
+
+    result = parse_anime_list([bad, with_relations([])])
+
+    assert result.relations == {900001: frozenset()}

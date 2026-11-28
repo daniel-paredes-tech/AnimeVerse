@@ -104,6 +104,15 @@ def test_request_sends_query_variables_and_headers(make_client):
     assert f"perPage: {PER_PAGE}" in body["query"]
 
 
+def test_query_asks_for_the_ids_of_related_media(make_client):
+    fake = FakeAniList(page([]))
+
+    make_client(fake).search_anime_page("naruto", 1)
+
+    query = " ".join(json.loads(fake.requests[0].content)["query"].split())
+    assert "relations { pageInfo { hasNextPage } edges { node { id } } }" in query
+
+
 def test_search_anime_follows_pages_until_has_next_page_is_false(make_client):
     fake = FakeAniList(
         page([{"id": 1}], has_next=True),
@@ -257,6 +266,7 @@ EXPECTED_MEDIA_FIELDS = {
     "description",
     "coverImage",
     "siteUrl",
+    "relations",
 }
 
 

@@ -11,6 +11,9 @@ Policy:
   date becomes a date; a partial one is not guessed, but its year is kept.
 - parse_anime_list never raises for a bad item: one malformed record must
   not stop the rest of the import.
+- Relations (the ids of related media) are kept apart from the Anime, in
+  SearchResult.relations: they decide franchise membership and are never
+  stored. A malformed relation is skipped with a warning.
 """
 
 import html
@@ -43,15 +46,49 @@ def parse_anime_list(raw_items: list[Any]) -> SearchResult:
     """Parse many items. Bad items are collected as rejections, never raised."""
     valid: list[Anime] = []
     rejected: list[Rejection] = []
+    relations: dict[int, frozenset[int]] = {}
     for position, raw in enumerate(raw_items):
         try:
-            valid.append(parse_anime(raw))
+            anime = parse_anime(raw)
         except InvalidAnimeError as exc:
             raw_id = raw.get("id") if isinstance(raw, dict) else None
             anilist_id = raw_id if _is_whole_number(raw_id) else None
             rejected.append(Rejection(position, anilist_id, str(exc)))
             logger.warning("Rejected AniList item at position %d (id=%s): %s", position, anilist_id, exc)
-    return SearchResult(anime=valid, rejected=rejected)
+            continue
+        valid.append(anime)
+        relations[anime.anilist_id] = parse_relations(raw, anime.anilist_id)
+    return SearchResult(anime=valid, rejected=rejected, relations=relations)
+
+
+def parse_relations(raw: dict[str, Any], anilist_id: int) -> frozenset[int]:
+    """The ids of the media an item relates to. Never raises.
+
+    Missing or null relations are empty. A malformed edge is skipped with a
+    warning; the other edges, and the anime itself, are kept.
+    """
+    relations = raw.get("relations")
+    if relations is None:
+        return frozenset()
+    edges = relations.get("edges") if isinstance(relations, dict) else None
+    if not isinstance(edges, list):
+        logger.warning("AniList id %d: 'relations.edges' is not a list, got %s", anilist_id, _short(edges))
+        return frozenset()
+
+    related: set[int] = set()
+    for edge in edges:
+        node = edge.get("node") if isinstance(edge, dict) else None
+        node_id = node.get("id") if isinstance(node, dict) else None
+        if _is_whole_number(node_id) and 0 < node_id <= MAX_INTEGER:
+            related.add(node_id)
+        else:
+            logger.warning("AniList id %d: skipped a malformed relation: %s", anilist_id, _short(edge))
+
+    page_info = relations.get("pageInfo")
+    if isinstance(page_info, dict) and page_info.get("hasNextPage") is True:
+        # Not seen on 2026-11-28: the search returns every relation on one page.
+        logger.warning("AniList id %d: has more relations than one page; only the first page is used", anilist_id)
+    return frozenset(related)
 
 
 def parse_anime(raw: Any) -> Anime:
