@@ -8,7 +8,9 @@ Saving an entry:
 
 Steps 1 and 4 are separate store calls: if an import changed the anime's
 episodes in between, the entry could be checked against the old number.
-Imports are rare and never delete anime, so this is accepted (ADR 0011).
+An import could also delete the anime in between, if it stopped belonging to
+any franchise (ADR 0012); the store then refuses the entry (foreign key).
+Imports are rare, so both are accepted (ADR 0011).
 """
 
 from animeverse.application.errors import AnimeNotFound, InvalidWatchlistEntry, WatchlistEntryNotFound
