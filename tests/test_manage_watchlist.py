@@ -93,3 +93,24 @@ def test_removing_a_missing_entry_is_not_found(store, anime_id):
 def test_removing_from_an_unknown_anime_is_not_found(store):
     with pytest.raises(AnimeNotFound):
         ManageWatchlist(store, store).remove(999)
+
+
+class ImportDeletesTheAnimeAfterItIsRead:
+    """A CatalogQuery that, right after each read, lets an import delete the anime (ADR 0012)."""
+
+    def __init__(self, store: InMemoryCatalogStore) -> None:
+        self._store = store
+
+    def get_anime(self, anime_id: int):
+        found = self._store.get_anime(anime_id)
+        franchise_id = self._store.committed.franchises["Test"][0]
+        with self._store.session() as session:
+            session.keep_only_links(franchise_id, frozenset())  # it no longer belongs: deleted
+        return found
+
+
+def test_an_anime_deleted_by_an_import_mid_save_is_not_found(store, anime_id):
+    watchlist = ManageWatchlist(ImportDeletesTheAnimeAfterItIsRead(store), store)
+
+    with pytest.raises(AnimeNotFound):
+        watchlist.save(anime_id, WATCHING)
