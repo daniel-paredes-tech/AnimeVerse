@@ -10,8 +10,9 @@ errors (httpx, psycopg...) into these, so no library error crosses a boundary.
 """
 
 import math
+from collections.abc import Mapping
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -54,6 +55,12 @@ class Rejection:
 class SearchResult:
     anime: list[Anime]  # valid results, in the source's order
     rejected: list[Rejection]  # malformed results; never stop the others
+    # Source id of each valid result -> source ids of the media it relates to (sequels,
+    # spin-offs, its manga...). Used to decide franchise membership; never stored.
+    relations: Mapping[int, frozenset[int]] = field(default_factory=dict)
+    # Source ids whose relations came missing, malformed or cut short: their entry in
+    # `relations` may lack some ids. An empty list that came complete is not here.
+    incomplete_relations: frozenset[int] = frozenset()
 
     @property
     def fetched(self) -> int:
@@ -75,6 +82,15 @@ class SavedMember:
     newly_linked: bool  # True: the anime was not yet linked to this franchise
 
 
+@dataclass(frozen=True)
+class UnlinkedAnime:
+    """An anime removed from a franchise because it no longer belongs to it."""
+
+    anilist_id: int
+    title: str
+    deleted: bool  # True: it was in no other franchise and not in the watchlist, so it was deleted
+
+
 class CatalogSession(Protocol):
     """One unit of work. Opened with CatalogStore.session()."""
 
@@ -86,6 +102,14 @@ class CatalogSession(Protocol):
         """Insert or refresh an anime (keyed by anilist_id) and link it to the franchise.
 
         Both happen or neither does. Raises RecordRefused for this anime only.
+        """
+        ...
+
+    def keep_only_links(self, franchise_id: int, anilist_ids: frozenset[int]) -> list[UnlinkedAnime]:
+        """Unlink from the franchise every anime whose AniList id is not in anilist_ids.
+
+        An anime this leaves with no franchise and no watchlist entry is deleted.
+        Returns the unlinked anime, ordered by AniList id. Raises StoreUnavailable.
         """
         ...
 

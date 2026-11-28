@@ -1,6 +1,6 @@
 # 0006. Franchise membership decided by title
 
-- Status: Accepted
+- Status: Superseded by 0012
 - Date: 2026-11-16 (recorded 2026-11-21)
 
 ## Context

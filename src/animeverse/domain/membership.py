@@ -1,56 +1,77 @@
-"""Membership rules: decide whether an anime belongs to a franchise.
+"""Membership rules: decide which search results belong to a franchise.
 
 AniList's search is loose (a search for "Demon Slayer" also returns an
-unrelated anime called "Onigiri"), so every franchise needs a rule that
-filters the search results.
+unrelated anime called "Onigiri", and "One Piece" returns a music video about
+a dress), so every franchise needs a rule that filters the search results.
 
-MembershipRule is the contract. TitleMatchRule is today's only rule. A
-better rule later (for example one based on AniList's "relations") is a new
-class with an `includes` method; nothing that uses rules has to change.
+MembershipRule is the contract. It sees the whole search result at once,
+because a rule may need to compare results with each other.
+
+RelationRule is today's only rule (ADR 0012). It starts at the franchise's
+main anime and follows AniList's relations (sequels, side stories, spin-offs,
+shared characters...) from result to result. Two details:
+- Relations count in both directions: AniList does not always list a
+  relation on both sides.
+- Only search results connect. Two anime that both point to the same manga
+  are not linked through it: the manga is not a result.
 """
 
-import re
-import unicodedata
+from collections import deque
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 from animeverse.domain.models import Anime, Franchise
 
 
+class MembershipUndecidable(Exception):
+    """The search result is not enough to decide which anime belong.
+
+    The import must then leave the franchise exactly as it is.
+    """
+
+
 class MembershipRule(Protocol):
-    def includes(self, anime: Anime) -> bool:
-        """True if the anime belongs to the franchise."""
+    def select_members(self, anime: Sequence[Anime], relations: Mapping[int, frozenset[int]]) -> list[Anime]:
+        """The anime that belong to the franchise, in their original order.
+
+        relations maps an anime's AniList id to the AniList ids it relates to.
+        Raises MembershipUndecidable.
+        """
         ...
 
 
-def normalize(text: str) -> str:
-    """Lowercase, strip accents, keep only letters and digits: 'Yu☆Gi☆Oh!' -> 'yugioh'."""
-    decomposed = unicodedata.normalize("NFKD", text.lower())  # 'é' -> 'e' + accent mark
-    return re.sub(r"[^a-z0-9]", "", decomposed)  # drops the accent marks too
-
-
 @dataclass(frozen=True)
-class TitleMatchRule:
-    """Includes an anime whose romaji or English title contains one of the terms.
+class RelationRule:
+    """Members are the results connected to the main anime through relations."""
 
-    Terms are compared ignoring case, accents, spaces and punctuation.
-    Known limitation: an unrelated title that happens to contain a term is
-    included too (e.g. "Mizuiro no One-Piece", a 1982 music video).
-    """
+    main_anilist_id: int
 
-    terms: tuple[str, ...]
+    def select_members(self, anime: Sequence[Anime], relations: Mapping[int, frozenset[int]]) -> list[Anime]:
+        result_ids = {item.anilist_id for item in anime}
+        if self.main_anilist_id not in result_ids:
+            raise MembershipUndecidable(f"the main anime ({self.main_anilist_id}) is not in the search results")
 
-    def __post_init__(self) -> None:
-        # Checked here, once: a term that normalizes to "" would match every title.
-        if not self.terms:
-            raise ValueError("a TitleMatchRule needs at least one term")
-        unusable = [term for term in self.terms if not normalize(term)]
-        if unusable:
-            raise ValueError(f"terms without letters or digits would match everything: {unusable}")
+        # Undirected graph between search results only.
+        neighbours: dict[int, set[int]] = {anilist_id: set() for anilist_id in result_ids}
+        for anilist_id in result_ids:
+            for related in relations.get(anilist_id, frozenset()) & result_ids:
+                neighbours[anilist_id].add(related)
+                neighbours[related].add(anilist_id)
 
-    def includes(self, anime: Anime) -> bool:
-        titles = [normalize(title) for title in (anime.title, anime.title_english) if title]
-        return any(normalize(term) in title for term in self.terms for title in titles)
+        if not relations.get(self.main_anilist_id):
+            # A main series always has relations (at least its manga). None means the
+            # source sent incomplete data: trusting it would drop almost every member.
+            raise MembershipUndecidable(f"the main anime ({self.main_anilist_id}) came without relations")
+
+        # Breadth-first walk from the main anime.
+        reached = {self.main_anilist_id}
+        queue = deque([self.main_anilist_id])
+        while queue:
+            for neighbour in neighbours[queue.popleft()] - reached:
+                reached.add(neighbour)
+                queue.append(neighbour)
+        return [item for item in anime if item.anilist_id in reached]
 
 
 @dataclass(frozen=True)

@@ -28,6 +28,7 @@ from animeverse.application.ports import (
     SavedMember,
     Sort,
     StoreUnavailable,
+    UnlinkedAnime,
 )
 from animeverse.domain.models import Anime, Franchise
 from animeverse.domain.watchlist import WatchlistEntry
@@ -72,6 +73,14 @@ class PostgresCatalogSession:
         except psycopg.Error as exc:
             raise StoreUnavailable(_first_line(exc)) from exc
         return SavedMember(created=saved.created, newly_linked=newly_linked)
+
+    def keep_only_links(self, franchise_id: int, anilist_ids: frozenset[int]) -> list[UnlinkedAnime]:
+        try:
+            removed = repository.unlink_anime_except(self._conn, franchise_id, sorted(anilist_ids))
+            deleted = repository.delete_orphan_anime(self._conn, [anime_id for anime_id, _, _ in removed])
+        except psycopg.Error as exc:
+            raise StoreUnavailable(_first_line(exc)) from exc
+        return [UnlinkedAnime(anilist_id, title, anime_id in deleted) for anime_id, anilist_id, title in removed]
 
 
 class PostgresCatalogQuery:

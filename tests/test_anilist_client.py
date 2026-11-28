@@ -11,6 +11,7 @@ import httpx
 import pytest
 
 from animeverse.infrastructure.anilist.client import API_URL, PER_PAGE, AniListClient, AniListError
+from animeverse.infrastructure.anilist.mapper import parse_anime_list
 
 
 class FakeTime:
@@ -102,6 +103,26 @@ def test_request_sends_query_variables_and_headers(make_client):
     # The search text travels as a variable, never inside the query string.
     assert "naruto" not in body["query"]
     assert f"perPage: {PER_PAGE}" in body["query"]
+
+
+def test_query_sorts_results_by_id_so_pages_never_shift(make_client):
+    # The default order (search relevance) can change between page requests, which
+    # could skip a member; the import would then unlink it (ADR 0012).
+    fake = FakeAniList(page([]))
+
+    make_client(fake).search_anime_page("naruto", 1)
+
+    query = " ".join(json.loads(fake.requests[0].content)["query"].split())
+    assert "media(search: $search, type: ANIME, sort: [ID])" in query
+
+
+def test_query_asks_for_the_ids_of_related_media(make_client):
+    fake = FakeAniList(page([]))
+
+    make_client(fake).search_anime_page("naruto", 1)
+
+    query = " ".join(json.loads(fake.requests[0].content)["query"].split())
+    assert "relations { pageInfo { hasNextPage } edges { node { id } } }" in query
 
 
 def test_search_anime_follows_pages_until_has_next_page_is_false(make_client):
@@ -257,6 +278,7 @@ EXPECTED_MEDIA_FIELDS = {
     "description",
     "coverImage",
     "siteUrl",
+    "relations",
 }
 
 
@@ -268,3 +290,17 @@ def test_live_search_returns_every_queried_field():
 
     assert result.media, "AniList returned no results for 'naruto'"
     assert set(result.media[0]) == EXPECTED_MEDIA_FIELDS
+
+
+@pytest.mark.live
+def test_live_relations_have_the_shape_the_mapper_reads():
+    """Catches a change in relations: membership and reconciliation depend on them (ADR 0012)."""
+    with AniListClient() as client:
+        media = client.search_anime_page("naruto", 1).media
+
+    main = next(item for item in media if item["id"] == 20)  # NARUTO, the franchise's main anime
+    assert isinstance(main["relations"]["pageInfo"]["hasNextPage"], bool)
+    assert main["relations"]["edges"], "the main anime should have relations"
+    assert all(isinstance(edge["node"]["id"], int) for edge in main["relations"]["edges"])
+    # Parsed as the import parses them: nothing incomplete, or reconciliation would be skipped.
+    assert parse_anime_list(media).incomplete_relations == frozenset()

@@ -10,7 +10,7 @@ Built as a homework project for the Migracode training program. Everything runs 
 
 - It is free for non-commercial use and its [terms](https://docs.anilist.co/guide/terms-of-use) allow this kind of project.
 - Its rate limit is documented and also reported in the response headers, so the client can follow the real limit instead of a guessed one.
-- It returns enough to browse: 166 results for my seven franchises, 163 after filtering.
+- It returns enough to browse: 166 results for my seven franchises, 162 after filtering.
 - It reports the MyAnimeList id too, which keeps the data compatible with other anime sources.
 
 I started with the Jikan API, but it was unreachable on the day I began, so I switched. That is also why the schema keeps a `mal_id` column.
@@ -46,11 +46,11 @@ docker compose run --rm import       # runs migrate first
 The import ends with a report:
 
 ```
-Franchise         Status   Fetched  Rejected  Excluded   New  Refreshed  New links
-----------------------------------------------------------------------------------
-Naruto            ok            26         0         0    26          0         26
+Franchise         Status   Fetched  Rejected  Excluded   New  Refreshed  New links  Unlinked  Deleted
+-----------------------------------------------------------------------------------------------------
+Naruto            ok            26         0         0    26          0         26         0        0
 ...
-Demon Slayer      ok            10         0         1     9          0          9
+Demon Slayer      ok            10         0         1     9          0          9         0        0
 
 Excluded (not part of the franchise):
   - Demon Slayer: Onigiri (21612)
@@ -58,7 +58,7 @@ Excluded (not part of the franchise):
 Result: 7 of 7 franchises imported.
 ```
 
-Run it again and every row shows `New 0`: existing anime are refreshed, nothing is duplicated.
+Run it again and every row shows `New 0`: existing anime are refreshed, nothing is duplicated. If an anime stops belonging to a franchise, it is unlinked from it, and deleted if it is in no other franchise and not on the watchlist.
 
 Exit codes: `0` success, `1` at least one franchise failed, `2` could not start (missing settings, database unreachable).
 
@@ -148,7 +148,7 @@ Numbers are from an import of 163 anime on 2026-11-16.
 **In the API**
 
 - **"Plain text" descriptions contain HTML.** I asked for `description(asHtml: false)` and 134 of 163 descriptions still had tags like `<br>`, `<i>` and `<li>`, plus entities like `&mdash;`. The mapper converts them to plain text.
-- **Search is loose.** The top result for "Demon Slayer" was *Onigiri*, an unrelated anime about an online game. So the import keeps a result only if its title contains one of the franchise's match terms.
+- **Search is loose.** The top result for "Demon Slayer" was *Onigiri*, an unrelated anime about an online game. So the import keeps a result only if AniList's `relations` connect it to the franchise's main anime ([ADR 0012](docs/adr/0012-membership-by-relations-and-link-reconciliation.md)). At first I matched titles instead, which caused the next finding.
 - **The result count cannot be trusted.** A search for "naruto" reports 5,000 results in 2,500 pages, but everything fits on one page of 50. AniList's docs confirm that only `hasNextPage` is reliable.
 - **The page size is capped silently.** Asking for 100 per page returns 50 with no error.
 - **The real rate limit is a third of the documented one.** The docs say 90 requests per minute; the API is currently in a "degraded state" and the `X-RateLimit-Limit` header says 30.
@@ -156,7 +156,7 @@ Numbers are from an import of 163 anime on 2026-11-16.
 **In the anime**
 
 - **Dates are often incomplete.** 11 anime have no full start date, but 6 of those do have a year: unreleased ones (*THE ONE PIECE*, 2027) and old ones where only the year was recorded (*Dragon Ball Specials*, 1988). At first I stored partial dates as `NULL` and lost those years; now the year has its own column.
-- **Title matching has a false positive.** Showing the years exposed *Mizuiro no One-Piece*, a music video from 1982, inside the One Piece franchise, which started in 1999. The title means "light blue one-piece dress". It matches the term "one piece" but has nothing to do with the franchise.
+- **Title matching has a false positive.** Showing the years exposed *Mizuiro no One-Piece*, a music video from 1982, inside the One Piece franchise, which started in 1999. The title means "light blue one-piece dress". It matches the term "one piece" but has nothing to do with the franchise. Deciding membership by relations removed it, together with a second one, *Noroi no One Piece*.
 - **Movies outnumber TV series**: 62 movies and 41 TV series. One Piece has 39 entries, but only 2 are TV series.
 - **The longest-running show has no episode count.** One Piece is still airing, so AniList reports its episodes as unknown.
 - **AniList and MyAnimeList ids are different numbers** for 77 of the 158 anime that have both; 5 have no MyAnimeList id.
@@ -218,8 +218,8 @@ Why it is built this way: [docs/adr/](docs/adr/) has one short record per decisi
 
 ## Limitations
 
-- Franchise membership is decided by the title, so it can be wrong both ways: a spin-off with a different name is excluded until a match term is added (the report lists everything excluded), and an unrelated title that contains the term is included (see *Mizuiro no One-Piece* above). AniList's `relations` field would be a better source.
-- Imports never delete. An anime that disappears from AniList, or stops matching, stays in the database.
+- Franchise membership depends on AniList's relations. An anime without any (such as *Jujutsu Kaisen Modulo PV*, a promo video) is excluded; the report lists everything excluded.
+- Imports delete an anime that no longer belongs to any franchise, unless it is on the watchlist. If it comes back later it gets a new internal id.
 - Every run fetches every franchise again: one request each, about 12 seconds in total.
 - There is no public web application and nothing is deployed yet; the code is prepared for both ([ADR 0008](docs/adr/0008-web-and-cloud-postponed.md)).
 

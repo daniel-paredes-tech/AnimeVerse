@@ -1,6 +1,6 @@
 # 0011. The watchlist: user data in its own table
 
-- Status: Accepted
+- Status: Accepted. Its note on `ON DELETE CASCADE` is updated by 0012 (imports can now delete anime, never one with a watchlist entry)
 - Date: 2026-11-23
 
 ## Context

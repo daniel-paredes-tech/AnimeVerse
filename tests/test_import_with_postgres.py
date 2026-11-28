@@ -6,13 +6,13 @@ fakes; these check that the pieces really fit together. Made-up data only.
 
 from animeverse.application.import_catalog import ImportCatalog
 from animeverse.application.ports import SearchResult
-from animeverse.config.franchises import by_title
+from animeverse.config.franchises import by_relations
 from animeverse.domain.models import Anime
 from animeverse.infrastructure.postgres.connection import connect
 from animeverse.infrastructure.postgres.store import PostgresCatalogStore
 from tests.fakes import FakeSource
 
-NARUTO = by_title("Naruto", search="Naruto", match=("naruto",))
+NARUTO = by_relations("Naruto", search="Naruto", main_anilist_id=900001)
 RESULTS = SearchResult(
     anime=[
         Anime(anilist_id=900001, title="NARUTO"),
@@ -20,6 +20,7 @@ RESULTS = SearchResult(
         Anime(anilist_id=900003, title="Onigiri"),
     ],
     rejected=[],
+    relations={900001: frozenset({900002}), 900002: frozenset(), 900003: frozenset()},  # Onigiri: unrelated
 )
 
 
@@ -44,3 +45,18 @@ def test_import_commits_so_other_connections_see_the_data(committing_conn, test_
 
     with connect(test_db_settings) as other:
         assert count(other, "anime") == 2
+
+
+def test_reimport_after_membership_change_deletes_the_orphan(committing_conn):
+    store = PostgresCatalogStore(committing_conn)
+    ImportCatalog(FakeSource({"Naruto": RESULTS}), store).import_franchise(NARUTO)
+    no_longer_related = SearchResult(
+        anime=RESULTS.anime,
+        rejected=[],
+        relations={900001: frozenset({800001}), 900002: frozenset(), 900003: frozenset()},  # 900002 dropped
+    )
+
+    report = ImportCatalog(FakeSource({"Naruto": no_longer_related}), store).import_franchise(NARUTO)
+
+    assert [(u.anilist_id, u.deleted) for u in report.unlinked] == [(900002, True)]
+    assert (count(committing_conn, "anime"), count(committing_conn, "anime_franchises")) == (1, 1)

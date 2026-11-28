@@ -29,6 +29,7 @@ from animeverse.application.ports import (
     SourceUnavailable,
     StoredWatchlistEntry,
     StoreUnavailable,
+    UnlinkedAnime,
 )
 from animeverse.domain.models import Anime, Franchise
 from animeverse.domain.watchlist import WatchlistEntry
@@ -57,6 +58,7 @@ class _State:
     ids: dict[int, int] = field(default_factory=dict)  # anilist_id -> AnimeVerse id (like anime.id)
     refreshed_at: dict[int, datetime] = field(default_factory=dict)  # anilist_id -> last import
     watchlist: dict[int, StoredWatchlistEntry] = field(default_factory=dict)  # anime id -> entry
+    last_id: int = 0  # the last AnimeVerse id given out
 
 
 class InMemoryCatalogStore:
@@ -69,12 +71,13 @@ class InMemoryCatalogStore:
         self.committed = _State()
         self.unavailable = False  # set to True to simulate a store that is down
         self.fail_after_saves: int | None = None  # simulate the store dying in the middle of a session
+        self.fail_on_keep_only_links = False  # simulate the store dying while reconciling links
 
     @contextmanager
     def session(self) -> Iterator["_InMemorySession"]:
         if self.unavailable:
             raise StoreUnavailable("in-memory store is down")
-        session = _InMemorySession(copy.deepcopy(self.committed), self.fail_after_saves)
+        session = _InMemorySession(copy.deepcopy(self.committed), self.fail_after_saves, self.fail_on_keep_only_links)
         yield session  # if the block raises, the working copy is simply dropped (rollback)
         self.committed = session.state  # commit
 
@@ -146,9 +149,10 @@ class InMemoryCatalogStore:
 
 
 class _InMemorySession:
-    def __init__(self, state: _State, fail_after_saves: int | None) -> None:
+    def __init__(self, state: _State, fail_after_saves: int | None, fail_on_keep_only_links: bool = False) -> None:
         self.state = state
         self._saves_left = fail_after_saves
+        self._fail_on_keep_only_links = fail_on_keep_only_links
 
     def save_franchise(self, franchise: Franchise) -> int:
         existing = self.state.franchises.get(franchise.name)
@@ -164,12 +168,30 @@ class _InMemorySession:
         _refuse_what_postgres_refuses(anime)
         created = anime.anilist_id not in self.state.anime
         self.state.anime[anime.anilist_id] = anime
-        self.state.ids.setdefault(anime.anilist_id, len(self.state.ids) + 1)
+        if anime.anilist_id not in self.state.ids:  # like a PostgreSQL sequence: an id is never reused
+            self.state.last_id += 1
+            self.state.ids[anime.anilist_id] = self.state.last_id
         self.state.refreshed_at[anime.anilist_id] = datetime.now(UTC)
         link = (franchise_id, anime.anilist_id)
         newly_linked = link not in self.state.links
         self.state.links.add(link)
         return SavedMember(created=created, newly_linked=newly_linked)
+
+    def keep_only_links(self, franchise_id: int, anilist_ids: frozenset[int]) -> list[UnlinkedAnime]:
+        if self._fail_on_keep_only_links:
+            raise StoreUnavailable("in-memory store died")
+        removed = sorted(a for f, a in self.state.links if f == franchise_id and a not in anilist_ids)
+        self.state.links -= {(franchise_id, a) for a in removed}
+        unlinked = []
+        for anilist_id in removed:
+            title = self.state.anime[anilist_id].title
+            still_linked = any(a == anilist_id for _, a in self.state.links)
+            in_watchlist = self.state.ids[anilist_id] in self.state.watchlist
+            deleted = not still_linked and not in_watchlist
+            if deleted:  # like PostgreSQL's DELETE: the anime and everything kept about it
+                del self.state.anime[anilist_id], self.state.ids[anilist_id], self.state.refreshed_at[anilist_id]
+            unlinked.append(UnlinkedAnime(anilist_id, title, deleted))
+        return unlinked
 
 
 def _refuse_what_postgres_refuses(anime: Anime) -> None:

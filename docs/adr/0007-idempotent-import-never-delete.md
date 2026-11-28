@@ -1,6 +1,6 @@
 # 0007. Idempotent import that never deletes
 
-- Status: Accepted
+- Status: Accepted, amended by 0012 (anime left in no franchise are deleted, unless in the watchlist)
 - Date: 2026-11-16 (recorded 2026-11-21)
 
 ## Context
