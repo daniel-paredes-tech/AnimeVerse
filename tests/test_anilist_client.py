@@ -104,6 +104,17 @@ def test_request_sends_query_variables_and_headers(make_client):
     assert f"perPage: {PER_PAGE}" in body["query"]
 
 
+def test_query_sorts_results_by_id_so_pages_never_shift(make_client):
+    # The default order (search relevance) can change between page requests, which
+    # could skip a member; the import would then unlink it (ADR 0012).
+    fake = FakeAniList(page([]))
+
+    make_client(fake).search_anime_page("naruto", 1)
+
+    query = " ".join(json.loads(fake.requests[0].content)["query"].split())
+    assert "media(search: $search, type: ANIME, sort: [ID])" in query
+
+
 def test_query_asks_for_the_ids_of_related_media(make_client):
     fake = FakeAniList(page([]))
 

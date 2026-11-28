@@ -46,13 +46,15 @@ HEADERS = {
 }
 
 # The fields approved for storage, plus the ids of related media (used only to
-# decide franchise membership, never stored). The search text and page number are
+# decide franchise membership, never stored). Results are sorted by id: the default
+# order (search relevance) could shift between page requests and skip an anime
+# (checked on 2026-11-28: same results, in id order). The search text and page number are
 # GraphQL variables, never pasted into the query string.
 SEARCH_ANIME_QUERY = f"""
 query ($search: String, $page: Int) {{
   Page(page: $page, perPage: {PER_PAGE}) {{
     pageInfo {{ hasNextPage }}
-    media(search: $search, type: ANIME) {{
+    media(search: $search, type: ANIME, sort: [ID]) {{
       id
       idMal
       title {{ romaji english native }}
