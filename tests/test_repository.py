@@ -12,7 +12,9 @@ import pytest
 
 from animeverse.domain.models import Anime, Franchise
 from animeverse.infrastructure.postgres.repository import (
+    delete_orphan_anime,
     link_anime_to_franchise,
+    unlink_anime_except,
     upsert_anime,
     upsert_franchise,
 )
@@ -135,6 +137,33 @@ def test_anime_can_belong_to_two_franchises(conn, count_rows):
 
     assert count_rows("anime") == 1
     assert count_rows("anime_franchises") == 2
+
+
+def test_unlink_anime_except_leaves_other_franchises_alone(conn, count_rows):
+    first = upsert_franchise(conn, Franchise("Franchise A", "a"))
+    second = upsert_franchise(conn, Franchise("Franchise B", "b"))
+    kept = upsert_anime(conn, Anime(anilist_id=900001, title="Kept")).id
+    dropped = upsert_anime(conn, Anime(anilist_id=900002, title="Dropped")).id
+    for anime_id in (kept, dropped):
+        link_anime_to_franchise(conn, anime_id, first)
+        link_anime_to_franchise(conn, anime_id, second)
+
+    removed = unlink_anime_except(conn, first, [900001])
+
+    assert removed == [(dropped, 900002, "Dropped")]
+    assert count_rows("anime_franchises") == 3  # both links of B, and Kept's link of A
+
+
+def test_delete_orphan_anime_only_deletes_anime_without_links_or_watchlist_entry(conn, count_rows):
+    franchise_id = upsert_franchise(conn, Franchise("Test Franchise", "test"))
+    linked = upsert_anime(conn, Anime(anilist_id=900001, title="Linked")).id
+    watched = upsert_anime(conn, Anime(anilist_id=900002, title="Watched")).id
+    orphan = upsert_anime(conn, Anime(anilist_id=900003, title="Orphan")).id
+    link_anime_to_franchise(conn, linked, franchise_id)
+    conn.execute("INSERT INTO watchlist_entries (anime_id, status) VALUES (%s, 'planning')", (watched,))
+
+    assert delete_orphan_anime(conn, [linked, watched, orphan]) == {orphan}
+    assert count_rows("anime") == 2
 
 
 # --- Repeated imports -------------------------------------------------------

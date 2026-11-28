@@ -79,6 +79,15 @@ class SavedMember:
     newly_linked: bool  # True: the anime was not yet linked to this franchise
 
 
+@dataclass(frozen=True)
+class UnlinkedAnime:
+    """An anime removed from a franchise because it no longer belongs to it."""
+
+    anilist_id: int
+    title: str
+    deleted: bool  # True: it was in no other franchise and not in the watchlist, so it was deleted
+
+
 class CatalogSession(Protocol):
     """One unit of work. Opened with CatalogStore.session()."""
 
@@ -90,6 +99,14 @@ class CatalogSession(Protocol):
         """Insert or refresh an anime (keyed by anilist_id) and link it to the franchise.
 
         Both happen or neither does. Raises RecordRefused for this anime only.
+        """
+        ...
+
+    def keep_only_links(self, franchise_id: int, anilist_ids: frozenset[int]) -> list[UnlinkedAnime]:
+        """Unlink from the franchise every anime whose AniList id is not in anilist_ids.
+
+        An anime this leaves with no franchise and no watchlist entry is deleted.
+        Returns the unlinked anime, ordered by AniList id. Raises StoreUnavailable.
         """
         ...
 

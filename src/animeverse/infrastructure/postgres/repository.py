@@ -118,3 +118,45 @@ def link_anime_to_franchise(conn: psycopg.Connection, anime_id: int, franchise_i
         {"franchise_id": franchise_id, "anime_id": anime_id},
     )
     return cursor.rowcount == 1
+
+
+def unlink_anime_except(
+    conn: psycopg.Connection, franchise_id: int, keep_anilist_ids: list[int]
+) -> list[tuple[int, int, str]]:
+    """Remove the franchise's links to every anime whose AniList id is not in keep_anilist_ids.
+
+    Links to other franchises are untouched. Returns (id, anilist_id, title) of
+    each anime whose link was removed, ordered by AniList id.
+    """
+    cursor = conn.execute(
+        """
+        DELETE FROM anime_franchises AS af
+        USING anime AS a
+        WHERE af.anime_id = a.id
+          AND af.franchise_id = %(franchise_id)s
+          AND a.anilist_id <> ALL(%(keep)s)
+        RETURNING a.id, a.anilist_id, a.title
+        """,
+        {"franchise_id": franchise_id, "keep": keep_anilist_ids},
+    )
+    rows = [(row[0], row[1], row[2]) for row in cursor.fetchall()]
+    return sorted(rows, key=lambda row: row[1])  # RETURNING has no ORDER BY
+
+
+def delete_orphan_anime(conn: psycopg.Connection, anime_ids: list[int]) -> set[int]:
+    """Delete those of the given anime that belong to no franchise and have no watchlist entry.
+
+    The watchlist is the user's data: an anime in it is never deleted here.
+    Returns the ids of the deleted anime.
+    """
+    cursor = conn.execute(
+        """
+        DELETE FROM anime AS a
+        WHERE a.id = ANY(%(ids)s)
+          AND NOT EXISTS (SELECT 1 FROM anime_franchises af WHERE af.anime_id = a.id)
+          AND NOT EXISTS (SELECT 1 FROM watchlist_entries w WHERE w.anime_id = a.id)
+        RETURNING a.id
+        """,
+        {"ids": anime_ids},
+    )
+    return {row[0] for row in cursor.fetchall()}
