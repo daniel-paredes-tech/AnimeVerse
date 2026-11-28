@@ -11,6 +11,7 @@ import httpx
 import pytest
 
 from animeverse.infrastructure.anilist.client import API_URL, PER_PAGE, AniListClient, AniListError
+from animeverse.infrastructure.anilist.mapper import parse_anime_list
 
 
 class FakeTime:
@@ -289,3 +290,17 @@ def test_live_search_returns_every_queried_field():
 
     assert result.media, "AniList returned no results for 'naruto'"
     assert set(result.media[0]) == EXPECTED_MEDIA_FIELDS
+
+
+@pytest.mark.live
+def test_live_relations_have_the_shape_the_mapper_reads():
+    """Catches a change in relations: membership and reconciliation depend on them (ADR 0012)."""
+    with AniListClient() as client:
+        media = client.search_anime_page("naruto", 1).media
+
+    main = next(item for item in media if item["id"] == 20)  # NARUTO, the franchise's main anime
+    assert isinstance(main["relations"]["pageInfo"]["hasNextPage"], bool)
+    assert main["relations"]["edges"], "the main anime should have relations"
+    assert all(isinstance(edge["node"]["id"], int) for edge in main["relations"]["edges"])
+    # Parsed as the import parses them: nothing incomplete, or reconciliation would be skipped.
+    assert parse_anime_list(media).incomplete_relations == frozenset()
