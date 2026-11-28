@@ -27,6 +27,14 @@ updates:
     groups:
       web-minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # No new major TypeScript until openapi-typescript supports it. TypeScript 7
+      # removed the compiler API (ts.factory) that openapi-typescript 7.13.0 uses
+      # to write src/api/schema.d.ts, so `npm run gen:api` crashes. Our own code
+      # type-checks, tests and builds fine with TypeScript 7. Remove this rule
+      # once openapi-typescript accepts TypeScript 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions # the actions used in .github/workflows/
     directory: "/"
