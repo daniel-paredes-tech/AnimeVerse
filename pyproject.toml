@@ -14,7 +14,7 @@ dependencies = [
     "psycopg[binary]==3.3.9", # PostgreSQL driver; [binary] bundles the client library
     "python-dotenv==1.2.4",   # reads settings from .env
     "alembic==1.20.1",        # numbered, versioned database migrations
-    "sqlalchemy==2.1.8",      # required by Alembic; the application itself writes plain SQL
+    "sqlalchemy==2.1.9",      # required by Alembic; the application itself writes plain SQL
     "fastapi==0.165.0",       # the REST API (ADR 0009); brings Starlette and Pydantic
     "uvicorn==0.54.0",        # the server that runs the API
 ]
@@ -22,10 +22,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest==9.2.0",
-    "ruff==0.17.4",   # linter and formatter
+    "ruff==0.17.6",   # linter and formatter
     "mypy==2.4.1",    # type checker: makes the Protocol contracts between layers real
-    "import-linter==2.16",  # enforces which layer may import which
-    "schemathesis==4.34.0", # tests the API against openapi.yaml (ADR 0010)
+    "import-linter==2.17",  # enforces which layer may import which
+    "schemathesis==4.34.2", # tests the API against openapi.yaml (ADR 0010)
 ]
 
 [project.scripts]
