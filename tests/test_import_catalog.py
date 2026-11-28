@@ -245,3 +245,22 @@ def test_store_failure_during_reconciliation_undoes_the_franchise():
     assert report.failed and "store" in (report.error or "")
     assert stored_ids(store) == [900001, 900002, 900003]  # the new OVA was undone too
     assert len(store.committed.links) == 3
+
+
+def test_incomplete_relations_skip_reconciliation():
+    # AniList sent the main anime's relations, but not the movie's: what the walk
+    # can't reach might still belong, so nothing is unlinked or deleted.
+    store = InMemoryCatalogStore()
+    second = SearchResult(
+        SEQUEL_UNRELATED.anime,
+        [],
+        SEQUEL_UNRELATED.relations,
+        incomplete_relations=frozenset({900003}),
+    )
+
+    report = import_twice(ALL_RELATED, second, store)
+
+    assert not report.failed
+    assert report.reconciliation_skipped is not None and "incomplete relations" in report.reconciliation_skipped
+    assert report.unlinked == []
+    assert stored_ids(store) == [900001, 900002, 900003] and len(store.committed.links) == 3

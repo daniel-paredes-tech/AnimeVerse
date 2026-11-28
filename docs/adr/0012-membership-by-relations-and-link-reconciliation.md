@@ -36,8 +36,12 @@ watchlist: user data is never deleted.
 
 - Results we cannot judge keep their links: anime the database refused, and malformed results
   that have an id.
-- A malformed result without an id could be any anime, so that franchise is not reconciled at
-  all, and the report says why.
+- A malformed result without an id could be any anime, and a result whose relations came
+  incomplete (missing, null, malformed or on more than one page) could connect members the walk
+  cannot reach. In both cases that franchise is not reconciled at all, and the report says why.
+  An empty relation list is complete: some anime have none.
+- The anime to delete are locked (`SELECT ... FOR UPDATE`) before the delete, so a watchlist
+  entry the API saves at that very moment is always seen: the anime is then kept.
 - Only anime unlinked in that step can be deleted: there is no global sweep.
 
 This changes 0007's "imports never delete" to: **imports never delete user data, nor an anime that

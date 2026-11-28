@@ -148,7 +148,14 @@ def delete_orphan_anime(conn: psycopg.Connection, anime_ids: list[int]) -> set[i
 
     The watchlist is the user's data: an anime in it is never deleted here.
     Returns the ids of the deleted anime.
+
+    The rows are locked first, in their own statement. Without that, a watchlist
+    entry the API is inserting at that moment would be missed: the DELETE would
+    wait for the insert's lock on the anime, then go ahead without looking again,
+    and ON DELETE CASCADE would remove the entry the user had just saved. After
+    the lock, the DELETE (a new statement, so a new snapshot) sees that entry.
     """
+    conn.execute("SELECT id FROM anime WHERE id = ANY(%(ids)s) ORDER BY id FOR UPDATE", {"ids": anime_ids})
     cursor = conn.execute(
         """
         DELETE FROM anime AS a

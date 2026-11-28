@@ -58,6 +58,9 @@ class SearchResult:
     # Source id of each valid result -> source ids of the media it relates to (sequels,
     # spin-offs, its manga...). Used to decide franchise membership; never stored.
     relations: Mapping[int, frozenset[int]] = field(default_factory=dict)
+    # Source ids whose relations came missing, malformed or cut short: their entry in
+    # `relations` may lack some ids. An empty list that came complete is not here.
+    incomplete_relations: frozenset[int] = frozenset()
 
     @property
     def fetched(self) -> int:

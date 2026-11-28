@@ -21,7 +21,8 @@ only its current members. Every other anime is unlinked from it, and deleted
 if that leaves it in no franchise and it is not in the watchlist. The
 results we could not judge keep their links: anime the store refused and
 malformed results with an id. A malformed result without an id could be
-any anime, so the links are then not reconciled at all.
+any anime, and relations that came incomplete could hide members, so in
+either case the links are not reconciled at all (the report says why).
 
 This module only knows the ports: it works the same with AniList and
 PostgreSQL, or with the in-memory fakes used in the tests.
@@ -36,6 +37,7 @@ from animeverse.application.ports import (
     CatalogStore,
     RecordRefused,
     Rejection,
+    SearchResult,
     SourceUnavailable,
     StoreUnavailable,
     UnlinkedAnime,
@@ -144,7 +146,7 @@ class ImportCatalog:
                     new_links += saved.newly_linked
 
                 # 4. Reconcile: the franchise keeps only its current members.
-                skip_reason = _reconciliation_blocker(result.rejected)
+                skip_reason = _reconciliation_blocker(result)
                 if skip_reason is None:
                     unlinked = session.keep_only_links(franchise_id, _ids_to_keep(members, unsaved, result.rejected))
                     for gone in unlinked:
@@ -176,15 +178,19 @@ def _fail(report: FranchiseReport, error: str) -> FranchiseReport:
     return report
 
 
-def _reconciliation_blocker(rejected: list[Rejection]) -> str | None:
+def _reconciliation_blocker(result: SearchResult) -> str | None:
     """Why the links can't be reconciled safely, or None if they can.
 
-    A malformed result without an id could be any anime: unlinking would risk
-    removing one that still belongs.
+    Unlinking needs a complete picture, or it could remove an anime that still belongs:
+    - a malformed result without an id could be any anime;
+    - a result with incomplete relations may connect anime the walk could not reach.
     """
-    without_id = sum(r.source_id is None for r in rejected)
+    without_id = sum(r.source_id is None for r in result.rejected)
     if without_id:
         return f"{without_id} rejected result(s) without an id: can't tell which anime they were"
+    if result.incomplete_relations:
+        ids = ", ".join(str(i) for i in sorted(result.incomplete_relations))
+        return f"incomplete relations for {len(result.incomplete_relations)} result(s) ({ids})"
     return None
 
 

@@ -13,7 +13,8 @@ Policy:
   not stop the rest of the import.
 - Relations (the ids of related media) are kept apart from the Anime, in
   SearchResult.relations: they decide franchise membership and are never
-  stored. A malformed relation is skipped with a warning.
+  stored. A malformed relation is skipped with a warning, and that item's
+  relations are reported as incomplete (SearchResult.incomplete_relations).
 """
 
 import html
@@ -47,6 +48,7 @@ def parse_anime_list(raw_items: list[Any]) -> SearchResult:
     valid: list[Anime] = []
     rejected: list[Rejection] = []
     relations: dict[int, frozenset[int]] = {}
+    incomplete: set[int] = set()
     for position, raw in enumerate(raw_items):
         try:
             anime = parse_anime(raw)
@@ -57,24 +59,29 @@ def parse_anime_list(raw_items: list[Any]) -> SearchResult:
             logger.warning("Rejected AniList item at position %d (id=%s): %s", position, anilist_id, exc)
             continue
         valid.append(anime)
-        relations[anime.anilist_id] = parse_relations(raw, anime.anilist_id)
-    return SearchResult(anime=valid, rejected=rejected, relations=relations)
+        related, complete = parse_relations(raw, anime.anilist_id)
+        relations[anime.anilist_id] = related
+        if not complete:
+            incomplete.add(anime.anilist_id)
+    return SearchResult(valid, rejected, relations, frozenset(incomplete))
 
 
-def parse_relations(raw: dict[str, Any], anilist_id: int) -> frozenset[int]:
-    """The ids of the media an item relates to. Never raises.
+def parse_relations(raw: dict[str, Any], anilist_id: int) -> tuple[frozenset[int], bool]:
+    """The ids of the media an item relates to, and whether that list is complete. Never raises.
 
-    Missing or null relations are empty. A malformed edge is skipped with a
-    warning; the other edges, and the anime itself, are kept.
+    Incomplete means we can't be sure the list holds every relation: relations
+    missing or null, a malformed edge (skipped with a warning), or more than one
+    page of them (only the first is read). An empty list is complete.
     """
     relations = raw.get("relations")
     if relations is None:
-        return frozenset()
+        return frozenset(), False
     edges = relations.get("edges") if isinstance(relations, dict) else None
     if not isinstance(edges, list):
         logger.warning("AniList id %d: 'relations.edges' is not a list, got %s", anilist_id, _short(edges))
-        return frozenset()
+        return frozenset(), False
 
+    complete = True
     related: set[int] = set()
     for edge in edges:
         node = edge.get("node") if isinstance(edge, dict) else None
@@ -82,13 +89,15 @@ def parse_relations(raw: dict[str, Any], anilist_id: int) -> frozenset[int]:
         if _is_whole_number(node_id) and 0 < node_id <= MAX_INTEGER:
             related.add(node_id)
         else:
+            complete = False
             logger.warning("AniList id %d: skipped a malformed relation: %s", anilist_id, _short(edge))
 
     page_info = relations.get("pageInfo")
     if isinstance(page_info, dict) and page_info.get("hasNextPage") is True:
         # Not seen on 2026-11-28: the search returns every relation on one page.
+        complete = False
         logger.warning("AniList id %d: has more relations than one page; only the first page is used", anilist_id)
-    return frozenset(related)
+    return frozenset(related), complete
 
 
 def parse_anime(raw: Any) -> Anime:

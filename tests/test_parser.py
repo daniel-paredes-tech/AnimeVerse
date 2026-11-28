@@ -269,16 +269,28 @@ def with_relations(edges, has_next_page=False, **overrides):
 def test_relations_are_parsed_into_related_ids():
     item = with_relations([{"node": {"id": 900002}}, {"node": {"id": 900003}}])
 
-    assert parse_anime_list([item]).relations == {900001: frozenset({900002, 900003})}
+    result = parse_anime_list([item])
+
+    assert result.relations == {900001: frozenset({900002, 900003})}
+    assert result.incomplete_relations == frozenset()
+
+
+def test_an_empty_relation_list_is_complete():
+    # Legitimate: some anime (a promo video, unrelated search noise) have no relations.
+    result = parse_anime_list([with_relations([])])
+
+    assert result.relations == {900001: frozenset()}
+    assert result.incomplete_relations == frozenset()
 
 
 @pytest.mark.parametrize("item", [minimal(), minimal(relations=None)])
-def test_missing_or_null_relations_become_empty_without_warning(item, caplog):
+def test_missing_or_null_relations_are_empty_and_marked_incomplete(item, caplog):
     with caplog.at_level(logging.WARNING):
         result = parse_anime_list([item])
 
     assert result.relations == {900001: frozenset()}
-    assert caplog.records == []
+    assert result.incomplete_relations == frozenset({900001})  # unknown, not "none"
+    assert caplog.records == []  # the import reports it: see ImportCatalog
 
 
 @pytest.mark.parametrize(
@@ -298,13 +310,17 @@ def test_malformed_relation_edges_are_skipped_with_a_warning(edges, caplog):
 
     assert [a.anilist_id for a in result.anime] == [900001]  # the anime itself is still valid
     assert result.relations == {900001: frozenset()}
+    assert result.incomplete_relations == frozenset({900001})
     assert len(caplog.records) == 1
 
 
 def test_good_edges_are_kept_next_to_a_malformed_one():
     item = with_relations([{"node": {"id": 900002}}, {"node": None}])
 
-    assert parse_anime_list([item]).relations == {900001: frozenset({900002})}
+    result = parse_anime_list([item])
+
+    assert result.relations == {900001: frozenset({900002})}
+    assert result.incomplete_relations == frozenset({900001})
 
 
 def test_paginated_relations_are_kept_with_a_warning(caplog):
@@ -312,6 +328,7 @@ def test_paginated_relations_are_kept_with_a_warning(caplog):
         result = parse_anime_list([with_relations([{"node": {"id": 900002}}], has_next_page=True)])
 
     assert result.relations == {900001: frozenset({900002})}
+    assert result.incomplete_relations == frozenset({900001})
     assert "more relations" in caplog.text
 
 
