@@ -222,6 +222,6 @@ Why it is built this way: [docs/adr/](docs/adr/) has one short record per decisi
 - Franchise membership depends on AniList's relations. An anime without any (such as *Jujutsu Kaisen Modulo PV*, a promo video) is excluded; the report lists everything excluded.
 - Imports delete an anime that no longer belongs to any franchise, unless it is on the watchlist. If it comes back later it gets a new internal id.
 - Every run fetches every franchise again: one request each, about 12 seconds in total.
-- There is no public web application and nothing is deployed yet; the code is prepared for both ([ADR 0008](docs/adr/0008-web-and-cloud-postponed.md)).
+- Nothing is deployed: the web UI and the API run on this computer only. [ADR 0013](docs/adr/0013-how-a-public-deployment-would-work.md) describes a public, read-only version and the changes it would need.
 
 Anime data comes from the [AniList API](https://docs.anilist.co). This project is not affiliated with AniList.
