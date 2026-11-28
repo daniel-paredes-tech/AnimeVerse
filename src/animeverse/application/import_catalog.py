@@ -4,6 +4,7 @@ For each franchise:
     1. search the source                        (AnimeSource: malformed results come back as rejections)
     2. keep only anime that belong to it         (the franchise's MembershipRule: removes search noise)
     3. save franchise, anime and links           (CatalogStore: ONE unit of work, all or nothing)
+    4. reconcile its links                       (same unit of work: see below)
 
 Failure handling:
 - The source fails for a franchise, or its rule cannot decide membership
@@ -15,8 +16,12 @@ Failure handling:
   reported as failed, and the next franchise runs.
 - Any other exception is a bug and is NOT caught: it stops the import loudly.
 
-Imports only insert and refresh. An anime that disappears from the source
-is never deleted.
+Reconciliation (ADR 0012): after a successful search, a franchise keeps
+only its current members. Every other anime is unlinked from it, and deleted
+if that leaves it in no franchise and it is not in the watchlist. The
+results we could not judge keep their links: anime the store refused and
+malformed results with an id. A malformed result without an id could be
+any anime, so the links are then not reconciled at all.
 
 This module only knows the ports: it works the same with AniList and
 PostgreSQL, or with the in-memory fakes used in the tests.
@@ -33,8 +38,10 @@ from animeverse.application.ports import (
     Rejection,
     SourceUnavailable,
     StoreUnavailable,
+    UnlinkedAnime,
 )
 from animeverse.domain.membership import FranchiseDefinition, MembershipUndecidable
+from animeverse.domain.models import Anime
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +71,8 @@ class FranchiseReport:
     new: int = 0
     refreshed: int = 0
     new_links: int = 0
+    unlinked: list[UnlinkedAnime] = field(default_factory=list)  # no longer members (deleted or kept)
+    reconciliation_skipped: str | None = None  # why the links were not reconciled, if they weren't
 
 
 class ImportCatalog:
@@ -133,6 +142,22 @@ class ImportCatalog:
                         continue
                     new += saved.created
                     new_links += saved.newly_linked
+
+                # 4. Reconcile: the franchise keeps only its current members.
+                skip_reason = _reconciliation_blocker(result.rejected)
+                if skip_reason is None:
+                    unlinked = session.keep_only_links(franchise_id, _ids_to_keep(members, unsaved, result.rejected))
+                    for gone in unlinked:
+                        logger.info(
+                            "%s: unlinked %r (%d), %s",
+                            definition.name,
+                            gone.title,
+                            gone.anilist_id,
+                            "deleted" if gone.deleted else "kept (in the watchlist or another franchise)",
+                        )
+                else:
+                    unlinked = []
+                    logger.warning("%s: links not reconciled: %s", definition.name, skip_reason)
         except StoreUnavailable as exc:
             return _fail(report, f"store: {exc}")
 
@@ -140,6 +165,8 @@ class ImportCatalog:
         report.new = new
         report.refreshed = len(members) - len(unsaved) - new
         report.new_links = new_links
+        report.unlinked = unlinked
+        report.reconciliation_skipped = skip_reason
         return report
 
 
@@ -147,3 +174,22 @@ def _fail(report: FranchiseReport, error: str) -> FranchiseReport:
     report.failed = True
     report.error = error
     return report
+
+
+def _reconciliation_blocker(rejected: list[Rejection]) -> str | None:
+    """Why the links can't be reconciled safely, or None if they can.
+
+    A malformed result without an id could be any anime: unlinking would risk
+    removing one that still belongs.
+    """
+    without_id = sum(r.source_id is None for r in rejected)
+    if without_id:
+        return f"{without_id} rejected result(s) without an id: can't tell which anime they were"
+    return None
+
+
+def _ids_to_keep(members: list[Anime], unsaved: list[UnsavedAnime], rejected: list[Rejection]) -> frozenset[int]:
+    """The members, plus the results we could not judge (refused or malformed): their links stay."""
+    kept = {a.anilist_id for a in members} | {u.anilist_id for u in unsaved}
+    kept |= {r.source_id for r in rejected if r.source_id is not None}
+    return frozenset(kept)

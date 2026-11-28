@@ -71,12 +71,13 @@ class InMemoryCatalogStore:
         self.committed = _State()
         self.unavailable = False  # set to True to simulate a store that is down
         self.fail_after_saves: int | None = None  # simulate the store dying in the middle of a session
+        self.fail_on_keep_only_links = False  # simulate the store dying while reconciling links
 
     @contextmanager
     def session(self) -> Iterator["_InMemorySession"]:
         if self.unavailable:
             raise StoreUnavailable("in-memory store is down")
-        session = _InMemorySession(copy.deepcopy(self.committed), self.fail_after_saves)
+        session = _InMemorySession(copy.deepcopy(self.committed), self.fail_after_saves, self.fail_on_keep_only_links)
         yield session  # if the block raises, the working copy is simply dropped (rollback)
         self.committed = session.state  # commit
 
@@ -148,9 +149,10 @@ class InMemoryCatalogStore:
 
 
 class _InMemorySession:
-    def __init__(self, state: _State, fail_after_saves: int | None) -> None:
+    def __init__(self, state: _State, fail_after_saves: int | None, fail_on_keep_only_links: bool = False) -> None:
         self.state = state
         self._saves_left = fail_after_saves
+        self._fail_on_keep_only_links = fail_on_keep_only_links
 
     def save_franchise(self, franchise: Franchise) -> int:
         existing = self.state.franchises.get(franchise.name)
@@ -176,6 +178,8 @@ class _InMemorySession:
         return SavedMember(created=created, newly_linked=newly_linked)
 
     def keep_only_links(self, franchise_id: int, anilist_ids: frozenset[int]) -> list[UnlinkedAnime]:
+        if self._fail_on_keep_only_links:
+            raise StoreUnavailable("in-memory store died")
         removed = sorted(a for f, a in self.state.links if f == franchise_id and a not in anilist_ids)
         self.state.links -= {(franchise_id, a) for a in removed}
         unlinked = []
