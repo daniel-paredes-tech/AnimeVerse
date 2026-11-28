@@ -16,7 +16,7 @@ and the old one is marked "Superseded".
 | [0008](0008-web-and-cloud-postponed.md) | Web application and cloud deployment postponed | Superseded by 0009 |
 | [0009](0009-api-and-web-app-now.md) | API and web application now; cloud still postponed | Accepted |
 | [0010](0010-contract-first-openapi.md) | Contract-first OpenAPI, Problem Details errors, contract tests | Accepted |
-| [0011](0011-watchlist-in-its-own-table.md) | The watchlist: user data in its own table | Accepted |
+| [0011](0011-watchlist-in-its-own-table.md) | The watchlist: user data in its own table | Accepted, note updated by 0012 |
 | [0012](0012-membership-by-relations-and-link-reconciliation.md) | Membership by AniList relations, and link reconciliation | Accepted |
 
 Template for a new one:

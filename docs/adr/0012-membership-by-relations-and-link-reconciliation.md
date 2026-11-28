@@ -55,8 +55,14 @@ and deletes nothing.
   and "Jujutsu Kaisen Modulo PV" (163 → 162 anime) and added two Cup Noodle ads with One Piece
   characters.
 - "Jujutsu Kaisen Modulo PV" is lost: a promo video with no anime relations in AniList.
-- An anime that is deleted and later comes back gets a new internal id. Nothing outside the
-  database refers to internal ids except the watchlist, whose anime are never deleted.
+- An anime that is deleted and later comes back gets a new internal id. The API's URLs
+  (`/v1/anime/{id}`) and the web UI's pages use internal ids, so an old link or bookmark to it
+  then answers 404. The watchlist is not affected: its anime are never deleted.
+- An import can delete an anime while the API is saving a watchlist entry for it: the entry is
+  then refused, and the API answers 404 (the anime no longer exists), never 500.
+- ADR 0011's note on `ON DELETE CASCADE` ("only matters for manual cleanup") no longer holds:
+  imports delete anime too. The cascade can't remove a watchlist entry, because an anime with
+  one is never deleted, and the lock described above closes the race.
 - A wrong main anime id in the configuration would fail that franchise loudly instead of
   silently importing the wrong anime.
 - If AniList stopped sending relations for every result, the franchises would fail and the
